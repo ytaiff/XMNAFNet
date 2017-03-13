@@ -8,7 +8,13 @@
 
 @import XCTest;
 
+#import <XMNAFNet/XMNAFNet.h>
+#import <XMNAFNet/XMNAFReachabilityManager.h>
+
 @interface Tests : XCTestCase
+
+@property (strong, nonatomic) XMNAFNetworkRequest *request;
+@property (strong, nonatomic) XMNAFReachabilityManager *reach;
 
 @end
 
@@ -18,6 +24,21 @@
 {
     [super setUp];
     // Put setup code here. This method is called before the invocation of each test method in the class.
+    self.request = [[XMNAFNetworkRequest alloc] init];
+    [self.reach startMonitoringWithURL:[NSURL URLWithString:@"https://www.baidu.com"]];
+    [self.reach setStatusDidChangedBlock:^(XMNAFReachablityStatus status) {
+       
+        switch (status) {
+            case XMNAFReachablityStatusWifi:
+                NSLog(@"change to wifi");
+                break;
+            case XMNAFReachablityStatusUnknown:
+                NSLog(@"无连接");
+                break;
+            default:
+                break;
+        }
+    }];
 }
 
 - (void)tearDown
@@ -26,9 +47,9 @@
     [super tearDown];
 }
 
-- (void)testExample
-{
-    XCTFail(@"No implementation for \"%s\"", __PRETTY_FUNCTION__);
+- (void)testQuery {
+    
+    [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]];
 }
 
 @end

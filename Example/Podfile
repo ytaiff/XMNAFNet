@@ -2,5 +2,4 @@ use_frameworks!
 target 'XMNAFNet_Tests' do
   pod 'XMNAFNet', :path => '../'
   
-  
 end
