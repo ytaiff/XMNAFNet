@@ -39,6 +39,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 @synthesize serviceIdentifier = _serviceIdentifier;
 @synthesize methodName = _methodName;
 @synthesize response = _response;
+@synthesize loading = _loading;
 
 #pragma mark - Life Cycle
 
@@ -55,6 +56,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
         _message = nil;
         _requestStatus = XMNAFNetworkRequestDefault;
         
+        _loading = NO;
         _shouldSign = NO;
         _shouldCache = NO;
         _requestMode = XMNAFNetworkRequestGET;
@@ -179,6 +181,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
                                                                   params:reformParams
                                                                    error:error];
                                 }];
+            _loading = YES;
             return self.requestID;
         }else {
             
@@ -280,6 +283,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
             }
         }
     }
+    _loading = NO;
 }
 
 
@@ -343,6 +347,16 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 - (NSDictionary *)requestParams {
     
     return self.dataTask.requestParams;
+}
+
+- (BOOL)isReachable {
+    
+    return YES;
+}
+
+- (BOOL)isLoading {
+    
+    return _loading;
 }
 
 @end

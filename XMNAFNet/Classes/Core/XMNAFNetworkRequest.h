@@ -127,10 +127,10 @@ shouldContinueWithParams:(id _Nullable)aParmas;
 @property (nonatomic, assign, readonly) XMNAFNetworkRequestStatus requestStatus;
 
 /** 判断request 是否有网络请求 */
-@property (nonatomic, assign, readonly) BOOL isReachable;
+@property (nonatomic, assign, readonly, getter=isReachable) BOOL reachable;
 
 /** 判断request 是否正在请求 */
-@property (nonatomic, assign, readonly) BOOL isLoading;
+@property (nonatomic, assign, readonly, getter=isLoading) BOOL loading;
 
 /** 请求方法,必须由子类重写 */
 @property (nonatomic, copy, readonly, nonnull)   NSString *methodName;
