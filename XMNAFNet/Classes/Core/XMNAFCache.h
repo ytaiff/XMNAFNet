@@ -26,8 +26,8 @@
  *  @return MD5加密后的key
  */
 + (NSString * _Nullable)keyWithServiceIdentifier:(NSString * _Nonnull)aServiceIdentifier
-                            methodName:(NSString * _Nonnull)aMethodName
-                         requestParams:(NSDictionary * _Nonnull)aParams;
+                                      methodName:(NSString * _Nonnull)aMethodName
+                                   requestParams:(NSDictionary * _Nonnull)aParams;
 
 
 /**
@@ -40,30 +40,30 @@
  *  @return nil  or NSData实例
  */
 + (NSData * _Nullable)fetchCachedDataWithServiceIdentifier:(NSString * _Nonnull)aServiceIdentifier
-                                      methodName:(NSString * _Nonnull)aMethodName
-                                   requestParams:(NSDictionary * _Nullable)aParams;
+                                                methodName:(NSString * _Nonnull)aMethodName
+                                             requestParams:(NSDictionary * _Nullable)aParams;
 
 
 /**
  *  保存缓存
  *
  *  @param aCachedData        缓存内容
- *  @param aServiceIdentifier
- *  @param amethodName
- *  @param aParams
+ *  @param aServiceIdentifier 请求identifier
+ *  @param aMethodName        请求方法名
+ *  @param aParams            请求参数
  */
 + (void)saveCacheWithData:(NSData * _Nonnull)aCachedData
         serviceIdentifier:(NSString * _Nonnull)aServiceIdentifier
-               methodName:(NSString * _Nonnull)amethodName
+               methodName:(NSString * _Nonnull)aMethodName
             requestParams:(NSDictionary * _Nullable)aParams;
 
 /**
  *  保存缓存
  *
  *  @param aCachedData        缓存内容
- *  @param aServiceIdentifier
- *  @param aMethodName
- *  @param aParams
+ *  @param aServiceIdentifier 请求identifier
+ *  @param aMethodName        请求方法名
+ *  @param aParams            请求参数
  *  @param cacheTime          缓存时间 默认kXMNAFNetowrkRequestCacheOutdateTimeSeconds
  */
 + (void)saveCacheWithData:(NSData * _Nonnull)aCachedData
@@ -75,9 +75,9 @@
 /**
  *  清除对应的缓存内容
  *
- *  @param aServiceIdentifier
- *  @param aMethodName
- *  @param aParams
+ *  @param aServiceIdentifier 请求identifier
+ *  @param aMethodName        请求方法名
+ *  @param aParams            请求参数
  */
 + (void)removeCacheWithServiceIdentifier:(NSString * _Nonnull)aServiceIdentifier
                               methodName:(NSString * _Nonnull)aMethodName

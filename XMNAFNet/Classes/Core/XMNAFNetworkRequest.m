@@ -12,9 +12,12 @@
 #import "XMNAFCache.h"
 #import "XMNAFService.h"
 #import "XMNAFNetworkResponse.h"
-#import "XMNAFReachabilityManager.h"
 
 #import "AFHTTPSessionManager.h"
+
+#if kXMNAFReachablityAvailable
+    #import "XMNAFReachabilityManager.h"
+#endif
 
 #import "NSURLSessionTask+XMNAFNet.h"
 
@@ -84,9 +87,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 - (void)dealloc {
     
-    //    XMNLog(@"%@ dealloc",NSStringFromClass([self class]));
     [self cancelRequest];
     self.completionBlock = nil;
+    self.delegate = nil;
+    self.signInterceptor = nil;
+    self.interceptor = nil;
 }
 
 #pragma mark - Methods
@@ -120,9 +125,6 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 - (NSString *)loadData {
     
     return [self loadDataWithPathParams:nil params:nil];
-    //    NSDictionary *params = [self.paramSource paramsForRequest:self];
-    //    NSString *requestId = [self loadDataWithParamsInternal:params];
-    //    return requestId;
 }
 
 
@@ -364,7 +366,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 - (BOOL)isReachable {
     
+#if kXMNAFReachablityAvailable
     return [XMNAFReachabilityManager isNetworkEnable];
+#else
+    return YES;
+#endif
 }
 
 - (NSURLSessionDataTask *)dataTask {

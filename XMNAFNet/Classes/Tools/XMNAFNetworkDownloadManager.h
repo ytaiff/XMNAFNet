@@ -41,16 +41,16 @@ FOUNDATION_EXTERN NSString * _Nonnull const kXMNAFDownloadFileNameKey;
  *  @return NSURLSessionDownloadTask 实例 or nil
  */
 - (NSURLSessionDownloadTask * _Nullable)downloadWithURLString:(NSString * _Nonnull)URLString
-                                           fileName:(NSString * _Nonnull)fileName
-                                      progressBlock:(void(^ _Nullable)(int64_t bytes,int64_t totalBytes))progressBlock
-                                      completeBlock:(void(^ _Nullable)(id _Nullable responseObject,NSError * _Nullable error))completeBlock;
+                                                     fileName:(NSString * _Nonnull)fileName
+                                                progressBlock:(void(^ _Nullable)(int64_t bytes,int64_t totalBytes))progressBlock
+                                                completeBlock:(void(^ _Nullable)(id _Nullable responseObject,NSError * _Nullable error))completeBlock;
 
 /**
  *  下载文件
  *
- *  @param constructBlock 构造block,返回NSDictionary类型
- *  @param progressBlock  进度条block
- *  @param completeBlock  完成block
+ *  @param constructingRequestBlock 构造block,返回NSDictionary类型
+ *  @param progressBlock            进度条block
+ *  @param completeBlock            完成block
  *
  *  @return NSURLSessionDownloadTask 实例 or nil
  */

@@ -17,13 +17,13 @@
 @interface XMNAFLogger : NSObject
 
 /**
- *  打印请求信息
- *
- *  @param aRequest    请求实例
- *  @param aService    请求实例使用的service
- *  @param aParams     请求参数
- *  @param aMethodName 请求方法名
- *  @param aMode       请求类型
+ 打印请求信息
+
+ @param urlString 请求地址
+ @param params 请求参数
+ @param method 请求方法
+ @param dataTask 请求对应的task
+ @param service 请求处理的service
  */
 + (void)logRequestInfo:(NSString * _Nonnull)urlString
                 params:(NSDictionary * _Nullable)params
@@ -31,10 +31,9 @@
               dataTask:(NSURLSessionDataTask * _Nonnull)dataTask
             forService:(XMNAFService * _Nonnull)service;
 
-
 /**
  *  打印返回Response信息
- *
+
  *  @param aResponse       返回response
  *  @param aResponseString 返回的response字符串
  *  @param aRequest        返回对应的请求

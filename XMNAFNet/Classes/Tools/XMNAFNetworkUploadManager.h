@@ -34,7 +34,6 @@ typedef void(^XMAFUploadProgressBlock)(int64_t bytes,int64_t totalBytes);
  *
  *  @param constructingRequestBlock 构造请求block 包含urlString,requestParams,requestHeaders
  *  @param constructingBodyBlock    构造上传文件block
- *  @param progressBlock            上传进度block
  *  @param completeBlock            上传完成block
  *
  */

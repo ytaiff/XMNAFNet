@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
   s.author           = { 'XMFraker' => '3057600441@qq.com' }
   s.source           = { :git => 'https://github.com/ws00801526/XMNAFNet.git', :tag => s.version.to_s }
   s.ios.deployment_target = '8.0'
-  s.default_subspec = 'Tools'
+  s.default_subspec = 'Core','Tools'
 
   s.subspec 'Core' do |ss|
     ss.source_files = "XMNAFNet/Classes/Core/*.{h,m}"

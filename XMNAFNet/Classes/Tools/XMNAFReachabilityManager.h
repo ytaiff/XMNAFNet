@@ -8,6 +8,10 @@
 
 #import <Foundation/Foundation.h>
 
+#ifndef kXMNAFReachablityAvailable
+    #define kXMNAFReachablityAvailable 1
+#endif
+
 /** 当前网络状态 */
 typedef NS_ENUM(NSUInteger, XMNAFReachablityStatus) {
     /** 未知网络状态 */
@@ -80,7 +84,7 @@ FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusStringKey;
 /**
  *  @brief 获取当前网络状态对应字符串
  *
- *  @return
+ *  @return 当前状态字符创
  */
 + (NSString *)currentStatusString;
 
