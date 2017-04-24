@@ -12,6 +12,9 @@
 #import "XMNAFCache.h"
 #import "XMNAFService.h"
 #import "XMNAFNetworkResponse.h"
+#import "XMNAFReachabilityManager.h"
+
+#import "AFHTTPSessionManager.h"
 
 #import "NSURLSessionTask+XMNAFNet.h"
 
@@ -39,12 +42,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 @synthesize serviceIdentifier = _serviceIdentifier;
 @synthesize methodName = _methodName;
 @synthesize response = _response;
-@synthesize loading = _loading;
 
 #pragma mark - Life Cycle
 
 - (instancetype)init {
-
+    
     if (self = [super init]) {
         
         _delegate = nil;
@@ -56,10 +58,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
         _message = nil;
         _requestStatus = XMNAFNetworkRequestDefault;
         
-        _loading = NO;
         _shouldSign = NO;
         _shouldCache = NO;
         _requestMode = XMNAFNetworkRequestGET;
+        
+        _timeoutInterval = kXMNAFNetworkTimeoutSeconds;
     }
     return self;
 }
@@ -81,7 +84,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 - (void)dealloc {
     
-    XMNLog(@"%@ dealloc",NSStringFromClass([self class]));
+    //    XMNLog(@"%@ dealloc",NSStringFromClass([self class]));
     [self cancelRequest];
     self.completionBlock = nil;
 }
@@ -96,11 +99,18 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 - (id)fetchDataWithReformer:(id<XMNAFNetworkRequestDataReformer>)reformer {
     
+    
+    return [self fetchDataWithReformer:reformer error:nil];
+}
+
+- (_Nullable id)fetchDataWithReformer:(_Nullable id<XMNAFNetworkRequestDataReformer>)reformer
+                                error:(NSError * __nullable)error {
+    
     id resultData = nil;
     if (reformer) {
         resultData = [reformer request:self
                     reformerOriginData:self.fetchedRawData
-                      error:nil];
+                                 error:error];
     }else {
         resultData = self.fetchedRawData;
     }
@@ -109,49 +119,61 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 - (NSString *)loadData {
     
-    NSDictionary *params = [self.paramSource paramsForRequest:self];
-    NSString *requestId = [self loadDataWithParamsInternal:params];
-    return requestId;
+    return [self loadDataWithPathParams:nil params:nil];
+    //    NSDictionary *params = [self.paramSource paramsForRequest:self];
+    //    NSString *requestId = [self loadDataWithParamsInternal:params];
+    //    return requestId;
 }
 
 
 - (NSString *)loadDataWithParams:(NSDictionary *)aParams {
     
-    NSMutableDictionary *params = [NSMutableDictionary dictionaryWithDictionary:[self.paramSource paramsForRequest:self]];
-    if (aParams) {
-        [params addEntriesFromDictionary:aParams];
-    }
-    NSString *requestId = [self loadDataWithParamsInternal:params];
-    return requestId;
+    return [self loadDataWithPathParams:nil
+                                 params:aParams];
 }
 
-- (NSString *)loadDataWithParamsInternal:(NSDictionary *)params {
+- (NSString * _Nullable)loadDataWithPathParams:(NSDictionary *)pathParams
+                                        params:(NSDictionary *)params {
+    
+    NSMutableDictionary *allParams = [NSMutableDictionary dictionaryWithDictionary:[self.paramSource paramsForRequest:self]];
+    if (params && [params isKindOfClass:[NSDictionary class]]) {
+        [allParams addEntriesFromDictionary:params];
+    }
+    return [self loadDataInternalWithPathParams:pathParams
+                                         params:[allParams copy]];
+}
+
+- (NSString * _Nullable)loadDataInternalWithPathParams:(NSDictionary *)pathParams
+                                                params:(NSDictionary *)params {
     
     NSMutableDictionary *reformParams = [NSMutableDictionary dictionaryWithDictionary:[self reformParams:params]];
+    
+    if (self.requestID && [XMNAFService taskWithIdentifier:self.requestID]) {
+        
+        XMNLog(@"request is doing cancel request");
+        [XMNAFService cancelTaskWithIdentifier:self.requestID];
+    }
     
     /** 1. 判断serviceIdentifier methodName 是否存在 */
     NSAssert(self.serviceIdentifier, @"you must implements serviceIdentifier in your class :%@",NSStringFromClass([self class]));
     NSAssert(self.methodName, @"you must implements methodName in your class :%@",NSStringFromClass([self class]));
     
+    __block NSString *methodName = self.methodName;
+    if (pathParams && [pathParams isKindOfClass:[NSDictionary class]]) {
+        [pathParams enumerateKeysAndObjectsUsingBlock:^(NSString  *key, NSString  *obj, BOOL * _Nonnull stop) {
+            
+            methodName = [methodName stringByReplacingOccurrencesOfString:[NSString stringWithFormat:@"{%@}",key] withString:[NSString stringWithFormat:@"%@",obj]];
+        }];
+    }
+    
     /** 2. 获取service */
     XMNAFService *service = [XMNAFService serviceWithIdentifier:self.serviceIdentifier];
     NSAssert(service, @"service with serviceIdentifier :%@ is not exists", self.serviceIdentifier);
     
-    if (self.requestID) {
-        NSString *urlString = [service.apiBaseURL stringByAppendingString:self.methodName];
-        NSString *requestID = [XMNAFService generateRequestKeyWithURLString:urlString params:reformParams];
-        if ([requestID isEqualToString:self.requestID] && [XMNAFService taskWithIdentifier:self.requestID]) {
-            XMNLog(@"request is doing cancel request");
-            [XMNAFService cancelTaskWithIdentifier:self.requestID];
-        }else {
-            XMNLog(@"request is requesting but params is not same, it will request again");
-        }
-    }
-    
     /** 3. 判断请求是否需要进行加密 */
     if (self.shouldSign && self.signInterceptor && [self.signInterceptor respondsToSelector:@selector(signParamsWithURLString:params:)]) {
         
-        NSDictionary *signParams = [self.signInterceptor signParamsWithURLString:[service.apiBaseURL stringByAppendingString:self.methodName]
+        NSDictionary *signParams = [self.signInterceptor signParamsWithURLString:[service.apiBaseURL stringByAppendingString:methodName]
                                                                           params:reformParams];
         if (signParams) {
             [reformParams addEntriesFromDictionary:signParams];
@@ -171,17 +193,20 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
             
             /** 7. 正常发起请求 */
             __weak typeof(*&self) wSelf = self;
+            
+            /** 8. 增加超时时间设置功能 */
+            [service.sessionManager.requestSerializer setTimeoutInterval:self.timeoutInterval];
+            
             self.requestID = [service requestWithMode:self.requestMode
-                                           params:reformParams
-                                       methodName:self.methodName
-                                  completionBlock:^(XMNAFNetworkResponse *response, NSError *error) {
-                                      
-                                      __strong typeof(*&wSelf) self = wSelf;
-                                      [self handleCompletionWithResponse:response
-                                                                  params:reformParams
-                                                                   error:error];
-                                }];
-            _loading = YES;
+                                               params:reformParams
+                                           methodName:methodName
+                                      completionBlock:^(XMNAFNetworkResponse *response, NSError *error) {
+                                          
+                                          __strong typeof(*&wSelf) self = wSelf;
+                                          [self handleCompletionWithResponse:response
+                                                                      params:reformParams
+                                                                       error:error];
+                                      }];
             return self.requestID;
         }else {
             
@@ -202,7 +227,6 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
     
     return self.requestID;
 }
-
 
 - (BOOL)handleShouldContineWithParams:(id)aParams {
     
@@ -241,7 +265,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
                                error:(NSError *)aError {
     
     if (aError) {
-        NSLog(@"error is what :%@",aError);
+        
         _response = aResponse;
         if (self.delegate) {
             [self.delegate didFailed:self];
@@ -255,7 +279,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
         } else {
             self.fetchedRawData = [aResponse.responseData copy];
         }
-
+        
         self.requestID = nil;
         
         if (self.delegate) {
@@ -283,7 +307,6 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
             }
         }
     }
-    _loading = NO;
 }
 
 
@@ -312,7 +335,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 #pragma mark - Getters
 
 - (NSString *)message {
-
+    
     
     /** 优先处理response.status逻辑 */
     if (self.response) {
@@ -339,6 +362,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
     }
 }
 
+- (BOOL)isReachable {
+    
+    return [XMNAFReachabilityManager isNetworkEnable];
+}
+
 - (NSURLSessionDataTask *)dataTask {
     
     return [XMNAFService taskWithIdentifier:self.requestID];
@@ -347,16 +375,6 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 - (NSDictionary *)requestParams {
     
     return self.dataTask.requestParams;
-}
-
-- (BOOL)isReachable {
-    
-    return YES;
-}
-
-- (BOOL)isLoading {
-    
-    return _loading;
 }
 
 @end

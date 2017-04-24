@@ -127,10 +127,10 @@ shouldContinueWithParams:(id _Nullable)aParmas;
 @property (nonatomic, assign, readonly) XMNAFNetworkRequestStatus requestStatus;
 
 /** 判断request 是否有网络请求 */
-@property (nonatomic, assign, readonly, getter=isReachable) BOOL reachable;
+@property (nonatomic, assign, readonly) BOOL isReachable;
 
 /** 判断request 是否正在请求 */
-@property (nonatomic, assign, readonly, getter=isLoading) BOOL loading;
+@property (nonatomic, assign, readonly) BOOL isLoading;
 
 /** 请求方法,必须由子类重写 */
 @property (nonatomic, copy, readonly, nonnull)   NSString *methodName;
@@ -150,6 +150,9 @@ shouldContinueWithParams:(id _Nullable)aParmas;
 /// ========================================
 /// @name   可读,可写方法
 /// ========================================
+
+/** 请求超时时间 */
+@property (assign, nonatomic) NSTimeInterval timeoutInterval;
 
 /** 缓存时间 默认kXMNAFNetowrkRequestCacheOutdateTimeSeconds*/
 @property (nonatomic, assign) NSTimeInterval  cacheTime;
@@ -184,6 +187,9 @@ shouldContinueWithParams:(id _Nullable)aParmas;
  */
 - (NSString * _Nullable)loadDataWithParams:(NSDictionary * _Nullable)params;
 
+- (NSString * _Nullable)loadDataWithPathParams:(NSDictionary * _Nullable)pathParams
+                                        params:(NSDictionary * _Nullable)params;
+
 /**
  *  清除数据记录
  *  errorMessage,requestStatus
@@ -203,6 +209,9 @@ shouldContinueWithParams:(id _Nullable)aParmas;
  *  @return 格式化后的数据
  */
 - (_Nullable id)fetchDataWithReformer:(_Nullable id<XMNAFNetworkRequestDataReformer>)reformer;
+- (_Nullable id)fetchDataWithReformer:(_Nullable id<XMNAFNetworkRequestDataReformer>)reformer
+                                error:(NSError * __nullable)error;
+
 
 /**
  *  重新格式化请求参数
@@ -225,7 +234,7 @@ shouldContinueWithParams:(id _Nullable)aParmas;
  *  @return XMNAFNetworkRequest实例 or nil
  */
 - (instancetype _Nullable)initWithServiceIdentifier:(NSString * _Nonnull)identifier
-                               methodName:(NSString * _Nonnull)methodName
-                              requestMode:(XMNAFNetworkRequestMode)requestMode;
+                                         methodName:(NSString * _Nonnull)methodName
+                                        requestMode:(XMNAFNetworkRequestMode)requestMode;
 
 @end
