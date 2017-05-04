@@ -150,7 +150,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
     
     NSMutableDictionary *reformParams = [NSMutableDictionary dictionaryWithDictionary:[self reformParams:params]];
     
-    if (self.requestID && [XMNAFService taskWithIdentifier:self.requestID]) {
+    if (self.isLoading) {
         
         XMNLog(@"request is doing cancel request");
         [XMNAFService cancelTaskWithIdentifier:self.requestID];
@@ -268,11 +268,14 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
     
     if (aError) {
         
-        _response = aResponse;
-        if (self.delegate) {
-            [self.delegate didFailed:self];
+        /** 不处理取消的请求回调 */
+        if (aError.code != NSURLErrorCancelled) {
+            _response = aResponse;
+            if (self.delegate) {
+                [self.delegate didFailed:self];
+            }
+            self.completionBlock ? self.completionBlock(self, aError) : nil;
         }
-        self.completionBlock ? self.completionBlock(self, aError) : nil;
     }else {
         
         _response = aResponse;
@@ -371,6 +374,11 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 #else
     return YES;
 #endif
+}
+
+- (BOOL)isLoading {
+    
+    return self.dataTask && self.dataTask.state == NSURLSessionTaskStateRunning;
 }
 
 - (NSURLSessionDataTask *)dataTask {
