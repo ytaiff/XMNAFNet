@@ -54,11 +54,10 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  保存一个service
 
- @param aService            需要保存的service
- @param aIdentifier         需要保存的service对应的identifier
+ @param service            需要保存的service
+ @param identifier         需要保存的service对应的identifier
  */
-+ (void)storeService:(XMNAFService *)service
-       forIdentifier:(NSString *)identifier;
++ (void)storeService:(XMNAFService *)service forIdentifier:(NSString *)identifier;
 
 
 /**
@@ -72,7 +71,7 @@ NS_ASSUME_NONNULL_BEGIN
 /**
  获取对应identifier的AFService
 
- @param identifier
+ @param identifier 对应的identifier
  @return XMNAFService or nil
  */
 + (nullable XMNAFService *)serviceWithIdentifier:(NSString *)identifier;
