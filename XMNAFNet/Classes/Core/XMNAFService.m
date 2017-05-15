@@ -21,10 +21,10 @@
 static AFHTTPSessionManager *kAFHTTPSessionManager;
 
 /** 记录当前所有可用的service */
-static NSMutableDictionary *kXMNAFSeriviceDictionaryM;
+static NSMutableDictionary<NSString *, __kindof XMNAFService *> *kXMNAFSeriviceDictionaryM;
 
 /** 记录当前所有正在请求的 dataTask 以 dataTask.hash 为key */
-static NSMutableDictionary *kXMNAFRequestIDDictionaryM;
+static NSMutableDictionary<NSString *, __kindof NSURLSessionTask *> *kXMNAFRequestIDDictionaryM;
 
 NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
     
@@ -68,14 +68,25 @@ NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
 }
 
 
-+ (void)storeService:(XMNAFService *)aService ForIdentifier:(NSString *)aIdentifier {
++ (void)storeService:(XMNAFService *)service forIdentifier:(NSString *)identifier {
     
-    [kXMNAFSeriviceDictionaryM setObject:aService forKey:aIdentifier];
+    if (!service || !identifier) {
+        return;
+    }
+    [kXMNAFSeriviceDictionaryM setObject:service forKey:identifier];
 }
 
-+ (XMNAFService *)serviceWithIdentifier:(NSString *)aIdentifier {
++ (XMNAFService *)serviceWithIdentifier:(NSString *)identifier {
     
-    return kXMNAFSeriviceDictionaryM[aIdentifier];
+    if (!identifier || !identifier.length) {
+        return nil;
+    }
+    return kXMNAFSeriviceDictionaryM[identifier];
+}
+
++ (NSArray <XMNAFService *> *)storedServices {
+    
+    return [kXMNAFSeriviceDictionaryM allValues];
 }
 
 #pragma mark - Getters

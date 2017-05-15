@@ -24,6 +24,7 @@ typedef NS_ENUM(NSUInteger, XMNAFServiceMode) {
     XMNAFServiceDis
 };
 
+NS_ASSUME_NONNULL_BEGIN
 
 @class AFHTTPSessionManager;
 @interface XMNAFService : NSObject
@@ -36,23 +37,45 @@ typedef NS_ENUM(NSUInteger, XMNAFServiceMode) {
 /// ========================================
 
 /** api基本请求路径 */
-@property (nonatomic, copy, readonly)   NSString *apiBaseURL;
+@property (nonatomic, copy, readonly, nullable)   NSString *apiBaseURL;
 /** api版本号 */
-@property (nonatomic, copy, readonly)   NSString *apiVersion;
+@property (nonatomic, copy, readonly, nullable)   NSString *apiVersion;
 
 /** api的一些基本通用参数 */
-@property (nonatomic, copy, readonly)   NSDictionary *commonParams;
+@property (nonatomic, copy, readonly, nullable)   NSDictionary *commonParams;
 /** api的一些通用headers */
-@property (nonatomic, copy, readonly)   NSDictionary *commonHeaders;
+@property (nonatomic, copy, readonly, nullable)   NSDictionary *commonHeaders;
 
 /** 是否打印日志 */
 @property (nonatomic, assign, readonly) BOOL shouldLog;
 
 @property (nonatomic, strong, readonly) AFHTTPSessionManager *sessionManager;
 
-+ (void)storeService:(XMNAFService *)aService ForIdentifier:(NSString *)aIdentifier;
+/**
+ 保存一个service
 
-+ (XMNAFService *)serviceWithIdentifier:(NSString *)aIdentifier;
+ @param aService            需要保存的service
+ @param aIdentifier         需要保存的service对应的identifier
+ */
++ (void)storeService:(XMNAFService *)service
+       forIdentifier:(NSString *)identifier;
+
+
+/**
+ 获取所有已经配置是AFService
+
+ @return NSArray or nil
+ */
++ (nullable NSArray <XMNAFService *> *)storedServices;
+
+
+/**
+ 获取对应identifier的AFService
+
+ @param identifier
+ @return XMNAFService or nil
+ */
++ (nullable XMNAFService *)serviceWithIdentifier:(NSString *)identifier;
 
 @end
 
@@ -62,15 +85,16 @@ typedef NS_ENUM(NSUInteger, XMNAFServiceMode) {
 @interface XMNAFService (RequestMethod)
 
 - (NSString *)requestWithMode:(int)aMode
-                       params:(NSDictionary *)aParams
+                       params:(nullable NSDictionary *)aParams
                    methodName:(NSString *)aMethodName
               completionBlock:(void(^)(XMNAFNetworkResponse *response,NSError *error))aCompletionBlock;
 
 + (NSString *)generateRequestKeyWithURLString:(NSString *)URLString
-                                       params:(NSDictionary *)params;
+                                       params:(nullable NSDictionary *)params;
 + (void)cancelTaskWithIdentifier:(NSString *)aID;
 + (void)cancelTasksWithIdentifiers:(NSArray *)aIDs;
-+ (NSURLSessionDataTask *)taskWithIdentifier:(NSString *)aID;
++ (nullable NSURLSessionDataTask *)taskWithIdentifier:(NSString *)aID;
 
 @end
 
+NS_ASSUME_NONNULL_END
