@@ -57,15 +57,32 @@ NSString *const kXMNAFUploadRequestParamsKey = @"com.XMFraker.XMNAFNetwork.XMNAF
     
     /** 配置上传头部信息 */
     NSDictionary *requestHeaders = arguments[kXMNAFUploadRequestHeadersKey];
+    
+    NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:[NSURL URLWithString:arguments[kXMNAFUploadURLStringKey]]];
+    NSDictionary *headers = [NSHTTPCookie requestHeaderFieldsWithCookies:cookies];
+    NSString *cookieString = [headers allValues].count ? [[headers allValues] firstObject] : nil;
+
     if (requestHeaders) {
         [requestHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-            [self.requestSerizalizer setValue:obj forHTTPHeaderField:key];
+            
+            if ([[obj lowercaseString] isEqualToString:@"cookie"]) {
+                if (cookieString && cookieString.length) {
+                    [self.requestSerizalizer setValue:[obj stringByAppendingFormat:@";%@",cookieString] forHTTPHeaderField:key];
+                }else {
+                    [self.requestSerizalizer setValue:obj forHTTPHeaderField:key];
+                }
+            }else {
+                [self.requestSerizalizer setValue:obj forHTTPHeaderField:key];
+            }
         }];
+    }else if (cookieString && cookieString.length){
+        [self.requestSerizalizer setValue:cookieString forHTTPHeaderField:@"Cookie"];
     }
     
     /** 获取请求 */
     NSMutableURLRequest *request = [self.requestSerizalizer multipartFormRequestWithMethod:@"POST" URLString:arguments[kXMNAFUploadURLStringKey] parameters:arguments[kXMNAFUploadRequestParamsKey] constructingBodyWithBlock:constructingBodyBlock error:nil];
-
+    request.HTTPShouldHandleCookies = YES;
+    
     NSURLSessionUploadTask *uploadTask = [self.sessionManager uploadTaskWithStreamedRequest:request  progress:^(NSProgress * _Nonnull uploadProgress) {
         
         progressBlock ? progressBlock(uploadProgress.completedUnitCount,uploadProgress.totalUnitCount) : nil;
