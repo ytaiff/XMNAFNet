@@ -65,19 +65,21 @@
 
 - (void)appendURLRequest:(NSURLRequest *)request {
     
-    [self appendFormat:@"\n\nHTTP URL:\n\t%@", request.URL];
-    [self appendFormat:@"\n\nHTTP Header:\n%@", request.allHTTPHeaderFields ? request.allHTTPHeaderFields : @"\t\t\t\t\tN/A"];
-    [self appendFormat:@"\n\nHTTP Body:\n\t%@", [[[NSString alloc] initWithData:request.HTTPBody encoding:NSUTF8StringEncoding] XMNAF_defaultValue:@"\t\t\t\tN/A"]];
-    
-    [self appendFormat:@"\n\nCookies :\n\t"];
-    NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:request.URL];
-    if (cookies.count > 0) {
-        [cookies enumerateObjectsUsingBlock:^(NSHTTPCookie * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-            
-            [self appendFormat:@"%@\n\t",[obj cookieDescription]];
-        }];
-    }else {
-        [self appendString:@"\t\t\tN/A\n"];
+    @synchronized (request) {
+        [self appendFormat:@"\n\nHTTP URL:\n\t%@", request.URL];
+        [self appendFormat:@"\n\nHTTP Header:\n%@", request.allHTTPHeaderFields ? request.allHTTPHeaderFields : @"\t\t\t\t\tN/A"];
+        [self appendFormat:@"\n\nHTTP Body:\n\t%@", [[[NSString alloc] initWithData:request.HTTPBody encoding:NSUTF8StringEncoding] XMNAF_defaultValue:@"\t\t\t\tN/A"]];
+        
+        [self appendFormat:@"\n\nCookies :\n\t"];
+        NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:request.URL];
+        if (cookies.count > 0) {
+            [cookies enumerateObjectsUsingBlock:^(NSHTTPCookie * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+                
+                [self appendFormat:@"%@\n\t",[obj cookieDescription]];
+            }];
+        }else {
+            [self appendString:@"\t\t\tN/A\n"];
+        }
     }
 }
 
@@ -94,16 +96,18 @@
             forService:(XMNAFService *)service {
     
     if (service.shouldLog) {
-        NSMutableString *logString = [NSMutableString stringWithString:@"\n\n**************************************************************\n*                       Request Start                        *\n**************************************************************\n\n"];
-        
-        [logString appendFormat:@"API Name:\t\t%@\n", [urlString XMNAF_defaultValue:@"N/A"]];
-        [logString appendFormat:@"Method:\t\t\t%@\n", method];
-        [logString appendFormat:@"Version:\t\t%@\n", [service.apiVersion XMNAF_defaultValue:@"N/A"]];
-        [logString appendFormat:@"Service:\t\t%@\n", [service class]];
-        [logString appendFormat:@"Params:\n%@", params];
-        [logString appendURLRequest:dataTask.currentRequest];
-        [logString appendFormat:@"\n\n**************************************************************\n*                         Request End                        *\n**************************************************************\n\n\n\n"];
-        NSLog(@"%@", logString);
+        @synchronized (dataTask) {
+            NSMutableString *logString = [NSMutableString stringWithString:@"\n\n**************************************************************\n*                       Request Start                        *\n**************************************************************\n\n"];
+            
+            [logString appendFormat:@"API Name:\t\t%@\n", [urlString XMNAF_defaultValue:@"N/A"]];
+            [logString appendFormat:@"Method:\t\t\t%@\n", method];
+            [logString appendFormat:@"Version:\t\t%@\n", [service.apiVersion XMNAF_defaultValue:@"N/A"]];
+            [logString appendFormat:@"Service:\t\t%@\n", [service class]];
+            [logString appendFormat:@"Params:\n%@", params];
+            [logString appendURLRequest:dataTask.currentRequest];
+            [logString appendFormat:@"\n\n**************************************************************\n*                         Request End                        *\n**************************************************************\n\n\n\n"];
+            NSLog(@"%@", logString);
+        }
     }
 }
 
