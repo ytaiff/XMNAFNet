@@ -283,8 +283,13 @@ NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
     
     completedBlock ? completedBlock(response, nil) : nil;
     if ([kXMNAFRequestIDDictionaryM.allValues containsObject:dataTask]) {
-        
-        [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
+        /** 增加移除datatask判断 */
+        if (dataTask.identifier) {
+            [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
+        }else {
+            NSArray<NSString *> *identifiers = [kXMNAFRequestIDDictionaryM allKeysForObject:dataTask];
+            [kXMNAFRequestIDDictionaryM removeObjectsForKeys:identifiers];
+        }
     }else {
         /** 如果请求不在kXMNAFRequestIDDictionaryM 中*/
         XMNLog(@"请求不在队列中");
@@ -308,8 +313,12 @@ NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
     
     completedBlock ? completedBlock(response, error) : nil;
     if ([kXMNAFRequestIDDictionaryM.allValues containsObject:dataTask]) {
-        
-        [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
+        if (dataTask.identifier) {
+            [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
+        }else {
+            NSArray<NSString *> *identifiers = [kXMNAFRequestIDDictionaryM allKeysForObject:dataTask];
+            [kXMNAFRequestIDDictionaryM removeObjectsForKeys:identifiers];
+        }
     }else {
         /** 如果请求不在kXMNAFRequestIDDictionaryM 中*/
         XMNLog(@"请求不在队列中");
