@@ -19,25 +19,28 @@ FOUNDATION_EXPORT double XMNAFNetVersionNumber;
 FOUNDATION_EXPORT const unsigned char XMNAFNetVersionString[];
 
 #if __has_include(<XMNAFNet/XMNAFNet.h>)
-
-#import <AFNetworking/AFNetworking.h>
-
-#import <XMNAFNet/XMNAFService.h>
-#import <XMNAFNet/XMNAFNetworkRequest.h>
-#import <XMNAFNet/XMNAFNetworkResponse.h>
-#import <XMNAFNet/XMNAFNetworkConfiguration.h>
-#import <XMNAFNet/NSError+XMNAFMessage.h>
-
+    #import <XMNAFNet/XMNAFService.h>
+    #import <XMNAFNet/XMNAFNetworkRequest.h>
+    #import <XMNAFNet/XMNAFNetworkResponse.h>
+    #import <XMNAFNet/XMNAFNetworkConfiguration.h>
+    #import <XMNAFNet/NSError+XMNAFMessage.h>
 #else
+    #import "XMNAFService.h"
+    #import "XMNAFNetworkRequest.h"
+    #import "XMNAFNetworkResponse.h"
+    #import "XMNAFNetworkConfiguration.h"
+    #import "NSError+XMNAFMessage.h"
+#endif
+
+#if __has_include(<XMNAFNet/XMNAFReachabilityManager.h>)
+    #import <XMNAFNet/XMNAFReachabilityManager.h>
+    #import <XMNAFNet/XMNAFNetworkUploadManager.h>
+    #import <XMNAFNet/XMNAFNetworkDownloadManager.h>
+    #ifndef kXMNAFReachablityAvailable
+        #define kXMNAFReachablityAvailable 1
+    #endif
+#endif
 
 #import <AFNetworking/AFNetworking.h>
-
-#import "XMNAFService.h"
-#import "XMNAFNetworkRequest.h"
-#import "XMNAFNetworkResponse.h"
-#import "XMNAFNetworkConfiguration.h"
-#import "NSError+XMNAFMessage.h"
-
-#endif
 
 #endif /* XMNAFNet_h */

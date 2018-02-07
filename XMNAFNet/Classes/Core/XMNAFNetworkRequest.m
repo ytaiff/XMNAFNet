@@ -6,18 +6,10 @@
 //  Copyright © 2016年 XMFraker. All rights reserved.
 //
 
-#import "XMNAFNetworkRequest.h"
+#import <XMNAFNet/XMNAFNet.h>
 
 #import "XMNAFLogger.h"
 #import "XMNAFCache.h"
-#import "XMNAFService.h"
-#import "XMNAFNetworkResponse.h"
-
-#import "AFHTTPSessionManager.h"
-
-#if kXMNAFReachablityAvailable
-    #import "XMNAFReachabilityManager.h"
-#endif
 
 #import "NSURLSessionTask+XMNAFNet.h"
 
@@ -35,7 +27,6 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 
 /** 自身的请求ID */
 @property (copy, nonatomic)   NSString *requestID;
-
 
 @end
 
@@ -113,10 +104,8 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
     
     id resultData = nil;
     if (reformer) {
-        resultData = [reformer request:self
-                    reformerOriginData:self.fetchedRawData
-                                 error:error];
-    }else {
+        resultData = [reformer request:self reformerOriginData:self.fetchedRawData error:error];
+    } else {
         resultData = self.fetchedRawData;
     }
     return resultData;
@@ -210,23 +199,24 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
                                                                        error:error];
                                       }];
             return self.requestID;
-        }else {
+        } else {
             
             /** 请求无网络连接错误 */
             NSError *error = [NSError errorWithDomain:kXMNAFNetworkErrorDomain code:XMNAFNetworkRequestUnreachableNetwork userInfo:nil];
+            self.requestStatus =  XMNAFNetworkRequestUnreachableNetwork;
             [self handleCompletionWithResponse:nil
                                         params:reformParams
                                          error:error];
         }
-    }else {
+    } else {
         
         /** 请求参数错误,无法正常发起请求 */
         NSError *error = [NSError errorWithDomain:kXMNAFNetworkErrorDomain code:XMNAFNetworkRequestParamsError userInfo:nil];
+        self.requestStatus =  XMNAFNetworkRequestParamsError;
         [self handleCompletionWithResponse:nil
                                     params:reformParams
                                      error:error];
     }
-    
     return self.requestID;
 }
 
@@ -246,9 +236,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
                                                            methodName:methodName
                                                         requestParams:aParams];
     
-    if (result == nil) {
-        return NO;
-    }
+    if (result == nil) { return NO; }
     
     dispatch_async(dispatch_get_main_queue(), ^{
         XMNAFNetworkResponse *response = [[XMNAFNetworkResponse alloc] initWithData:result];
@@ -271,12 +259,10 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
         /** 不处理取消的请求回调 */
         if (aError.code != NSURLErrorCancelled) {
             _response = aResponse;
-            if (self.delegate) {
-                [self.delegate didFailed:self];
-            }
+            if (self.delegate && [self.delegate respondsToSelector:@selector(didFailed:)]) { [self.delegate didFailed:self]; }
             self.completionBlock ? self.completionBlock(self, aError) : nil;
         }
-    }else {
+    } else {
         
         _response = aResponse;
         if (aResponse.responseObject) {
@@ -286,11 +272,8 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
         }
         
         self.requestID = nil;
-        
-        if (self.delegate) {
-            [self.delegate didSuccess:self];
-        }
-        self.completionBlock ? self.completionBlock(self, nil) : nil;
+        if (self.delegate && [self.delegate respondsToSelector:@selector(didSuccess:)]) { [self.delegate didSuccess:self]; }
+        if (self.completionBlock) self.completionBlock(self, nil);
         
         /** 存储缓存记录 */
         if (self.shouldCache && !aResponse.fromCache) {
@@ -303,7 +286,7 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
                                     requestParams:aParams
                                         cacheTime:self.cacheTime];
                 }
-            }else {
+            } else {
                 [XMNAFCache saveCacheWithData:self.fetchedRawData
                             serviceIdentifier:self.serviceIdentifier
                                    methodName:self.methodName
@@ -370,7 +353,8 @@ NSString * const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork..kXMNAFN
 - (BOOL)isReachable {
     
 #if kXMNAFReachablityAvailable
-    return [XMNAFReachabilityManager isNetworkEnable];
+    if ([XMNAFReachabilityManager sharedManager].isMonitoring) return [XMNAFReachabilityManager isNetworkEnable];
+    return YES;
 #else
     return YES;
 #endif

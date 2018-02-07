@@ -8,10 +8,6 @@
 
 #import <Foundation/Foundation.h>
 
-#ifndef kXMNAFReachablityAvailable
-    #define kXMNAFReachablityAvailable 1
-#endif
-
 /** 当前网络状态 */
 typedef NS_ENUM(NSUInteger, XMNAFReachablityStatus) {
     /** 未知网络状态 */
@@ -41,6 +37,8 @@ FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusStringKey;
 
 /** 检测的URL */
 @property (nonatomic, strong) NSURL *monitorURL;
+/** 是否正在监听 */
+@property (nonatomic,assign, readonly, getter=isMonitoring) BOOL monitoring;
 
 @property (nonatomic, assign, readonly) XMNAFReachablityStatus status;
 @property (nonatomic, assign, readonly) NSString *statusString;

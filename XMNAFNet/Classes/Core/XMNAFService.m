@@ -63,7 +63,6 @@ NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
         NSMutableSet *sets = [NSMutableSet setWithSet:kAFHTTPSessionManager.responseSerializer.acceptableContentTypes];
         [sets addObject:@"text/html"];
         kAFHTTPSessionManager.responseSerializer.acceptableContentTypes = sets;
-
     });
 }
 

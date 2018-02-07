@@ -24,7 +24,7 @@ typedef NS_ENUM(NSUInteger, XMNAFNetworkRequestStatus) {
 };
 
 /** XMNAFNetworkRequest的请求类型 */
-typedef NS_ENUM (NSUInteger, XMNAFNetworkRequestMode){
+typedef NS_ENUM (NSUInteger, XMNAFNetworkRequestMode) {
     /** GET请求 */
     XMNAFNetworkRequestGET = 0,
     /** POST请求 */
