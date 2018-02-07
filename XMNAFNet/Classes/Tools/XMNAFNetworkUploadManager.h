@@ -37,7 +37,7 @@ typedef void(^XMAFUploadProgressBlock)(int64_t bytes,int64_t totalBytes);
  *  @param completeBlock            上传完成block
  *
  */
-- (NSURLSessionUploadTask * _Nullable)uploadFileWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)())constructingRequestBlock
+- (NSURLSessionUploadTask * _Nullable)uploadFileWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)(void))constructingRequestBlock
                                          constructingBodyWithBlock:(void(^ _Nonnull)(_Nonnull id<AFMultipartFormData> formData))constructingBodyBlock
                                                      completeBlock:(void(^ _Nullable)(id _Nullable responseObject,NSError * _Nullable error))completeBlock;
 
@@ -50,7 +50,7 @@ typedef void(^XMAFUploadProgressBlock)(int64_t bytes,int64_t totalBytes);
  *  @param completeBlock            上传完成block
  *
  */
-- (NSURLSessionUploadTask * _Nullable)uploadFileWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)())constructingRequestBlock
+- (NSURLSessionUploadTask * _Nullable)uploadFileWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)(void))constructingRequestBlock
                                                    constructingBodyWithBlock:(void(^ _Nonnull)(_Nonnull id<AFMultipartFormData> formData))constructingBodyBlock
                                                      progressBlock:(void(^ _Nullable)(int64_t bytes,int64_t totalBytes))progressBlock
                                                                completeBlock:(void(^ _Nullable)(id _Nullable responseObject,NSError * _Nullable error))completeBlock;

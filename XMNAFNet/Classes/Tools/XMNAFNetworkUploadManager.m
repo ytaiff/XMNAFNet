@@ -35,7 +35,7 @@ NSString *const kXMNAFUploadRequestParamsKey = @"com.XMFraker.XMNAFNetwork.XMNAF
 #pragma mark - Methods
 
 
-- (NSURLSessionUploadTask *)uploadFileWithConstructingRequestBlock:(NSDictionary *(^)())constructingRequestBlock
+- (NSURLSessionUploadTask *)uploadFileWithConstructingRequestBlock:(NSDictionary *(^)(void))constructingRequestBlock
                                          constructingBodyWithBlock:(void(^)(id<AFMultipartFormData> formData))constructingBodyBlock
                                                      completeBlock:(void(^)(id responseObject,NSError *error))completeBlock {
     
@@ -45,7 +45,7 @@ NSString *const kXMNAFUploadRequestParamsKey = @"com.XMFraker.XMNAFNetwork.XMNAF
                                    completeBlock:completeBlock];
 }
 
-- (NSURLSessionUploadTask *)uploadFileWithConstructingRequestBlock:(NSDictionary *(^)())constructingRequestBlock
+- (NSURLSessionUploadTask *)uploadFileWithConstructingRequestBlock:(NSDictionary *(^)(void))constructingRequestBlock
                                          constructingBodyWithBlock:(void(^)(id<AFMultipartFormData> formData))constructingBodyBlock
                                                      progressBlock:(void(^)(int64_t bytes,int64_t totalBytes))progressBlock
                                                      completeBlock:(void(^)(id responseObject,NSError *error))completeBlock {

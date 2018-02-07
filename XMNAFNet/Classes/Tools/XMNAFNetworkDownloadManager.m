@@ -126,7 +126,7 @@ static NSString *kXMNAFDownloadTaskProgressKey;
 }
 
 
-- (NSURLSessionDownloadTask *)downloadWithConstructingRequestBlock:(NSDictionary * _Nonnull (^)())constructingRequestBlock
+- (NSURLSessionDownloadTask *)downloadWithConstructingRequestBlock:(NSDictionary * _Nonnull (^)(void))constructingRequestBlock
                                                      progressBlock:(void (^)(int64_t, int64_t))progressBlock
                                                      completeBlock:(void (^)(id _Nullable, NSError * _Nullable))completeBlock {
     

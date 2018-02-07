@@ -54,7 +54,7 @@ FOUNDATION_EXTERN NSString * _Nonnull const kXMNAFDownloadFileNameKey;
  *
  *  @return NSURLSessionDownloadTask 实例 or nil
  */
-- (NSURLSessionDownloadTask * _Nullable)downloadWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)())constructingRequestBlock
+- (NSURLSessionDownloadTask * _Nullable)downloadWithConstructingRequestBlock:(NSDictionary * _Nonnull (^ _Nonnull)(void))constructingRequestBlock
                                                      progressBlock:(void(^ _Nullable)(int64_t bytes,int64_t totalBytes))progressBlock
                                                      completeBlock:(void(^ _Nullable)(id _Nullable responseObject,NSError * _Nullable error))completeBlock;
 
