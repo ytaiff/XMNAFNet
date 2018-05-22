@@ -11,7 +11,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @class XMNAFNetworkRequest;
-@interface XMNAFCacheMeta : NSObject
+@interface XMNAFCacheMeta : NSObject <NSCoding, NSSecureCoding>
 
 /** request 缓存版本 */
 @property (copy, nonatomic)   NSString *cachedVersion;
@@ -23,7 +23,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (copy, nonatomic)   NSDictionary *cachedResponseHeaders;
 /** request 缓存数据是否已经过期 */
 @property (assign, nonatomic, readonly) BOOL isExpired;
-
+/** request 缓存数据是否合法 */
+@property (assign, nonatomic, readonly) BOOL isCahceDataValid;
 
 /**
  初始化方法, 根据request生成对应的CacheMeta实例

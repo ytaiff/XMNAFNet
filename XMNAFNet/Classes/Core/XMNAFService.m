@@ -6,25 +6,20 @@
 //  Copyright © 2016年 XMFraker. All rights reserved.
 //
 
-#import "XMNAFService.h"
+#import "XMNAFNetworkPrivate.h"
+#import "XMNAFNetworkConfiguration.h"
 
-#import "AFNetworking.h"
-#import "XMNAFLogger.h"
-#import "XMNAFNetworkRequest.h"
-#import "XMNAFNetworkResponse.h"
-
-#import "NSDictionary+XMNAFJSON.h"
-#import "NSURLSessionTask+XMNAFNet.h"
-
+#import <pthread.h>
+#import <AFNetworking/AFNetworking.h>
 #import <CommonCrypto/CommonCrypto.h>
+
 
 static AFHTTPSessionManager *kAFHTTPSessionManager;
 
+static pthread_mutex_t kXMNAFMutexLock;
+
 /** 记录当前所有可用的service */
 static NSMutableDictionary<NSString *, __kindof XMNAFService *> *kXMNAFSeriviceDictionaryM;
-
-/** 记录当前所有正在请求的 dataTask 以 dataTask.hash 为key */
-static NSMutableDictionary<NSString *, __kindof NSURLSessionTask *> *kXMNAFRequestIDDictionaryM;
 
 NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
     
@@ -43,319 +38,180 @@ NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str) {
     return hashStr;
 }
 
+NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable message) {
+    return [NSError errorWithDomain:kXMNAFNetworkErrorDomain code:code userInfo: message ? @{@"message" :message} : nil];
+}
+
 @implementation XMNAFService
+#if kXMNAFCacheAvailable
+@synthesize cache = _cache;
+@synthesize cachePath = _cachePath;
+#endif
+@synthesize requestMappers = _requestMappers;
+@synthesize sessionManager = _sessionManager;
 
 + (void)initialize {
     
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        NSLog(@"will load XMNAFService");
-        
+
+        pthread_mutex_init(&kXMNAFMutexLock, NULL);
         kXMNAFSeriviceDictionaryM = [NSMutableDictionary dictionary];
-        kXMNAFRequestIDDictionaryM = [NSMutableDictionary dictionary];
-        
-        //创建kAFHTTPSessionManager
-        kAFHTTPSessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:nil sessionConfiguration:[NSURLSessionConfiguration defaultSessionConfiguration]];
-        kAFHTTPSessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
-        kAFHTTPSessionManager.requestSerializer.timeoutInterval = kXMNAFNetworkTimeoutSeconds;
-        kAFHTTPSessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
-        kAFHTTPSessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
-        NSMutableSet *sets = [NSMutableSet setWithSet:kAFHTTPSessionManager.responseSerializer.acceptableContentTypes];
-        [sets addObject:@"text/html"];
-        kAFHTTPSessionManager.responseSerializer.acceptableContentTypes = sets;
     });
 }
 
+#pragma mark - Life Cycle
 
-+ (void)storeService:(XMNAFService *)service forIdentifier:(NSString *)identifier {
-    
-    if (!service || !identifier) {
-        return;
-    }
-    [kXMNAFSeriviceDictionaryM setObject:service forKey:identifier];
+- (instancetype)init {
+    return [self initWithConfiguration:nil];
 }
 
-+ (XMNAFService *)serviceWithIdentifier:(NSString *)identifier {
+- (instancetype)initWithConfiguration:(NSURLSessionConfiguration *)configuration {
     
-    if (!identifier || !identifier.length) {
-        return nil;
+    if (self = [super init]) {
+        
+        _requestMappers = [NSMutableDictionary dictionary];
+        _sessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:nil
+                                                   sessionConfiguration:configuration ? : [NSURLSessionConfiguration defaultSessionConfiguration]];
+        _sessionManager.completionQueue = self.serviceQueue;
+        _sessionManager.session.configuration.HTTPMaximumConnectionsPerHost = 4;
+
+        _sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+        _sessionManager.requestSerializer.timeoutInterval = 10.f;
+        _sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
+        _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
+        _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
+        
+#if kXMNAFCacheAvailable
+        _cache = [YYCache cacheWithPath:self.cachePath];
+#endif
     }
-    return kXMNAFSeriviceDictionaryM[identifier];
+    return self;
 }
 
-+ (NSArray <XMNAFService *> *)storedServices {
+#pragma mark - Public
+
+- (void)performThreadSafeHandler:(dispatch_block_t)handler {
     
-    return [kXMNAFSeriviceDictionaryM allValues];
+    pthread_mutex_lock(&kXMNAFMutexLock);
+    if (handler) { handler(); }
+    pthread_mutex_unlock(&kXMNAFMutexLock);
+}
+
+#pragma mark - Setter
+
+- (void)setRequestSerializerType:(XMNAFRequestSerializerType)type {
+    if (type == XMNAFRequestSerializerJSON) {
+        self.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+    }
+    self.sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+    self.sessionManager.requestSerializer.timeoutInterval = 10.f;
+    self.sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
+    self.sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
+}
+
+- (void)setResponseSerializerType:(XMNAFResponseSerializerType)type {
+    switch (type) {
+        case XMNAFResponseSerializerJSON:
+            self.sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
+            break;
+        case XMNAFResponseSerializerXML:
+            self.sessionManager.responseSerializer = [AFXMLParserResponseSerializer serializer];
+            break;
+        default:
+            self.sessionManager.responseSerializer = [AFHTTPResponseSerializer serializer];
+            self.sessionManager.responseSerializer.acceptableContentTypes = [NSSet setWithObject:@"text/html"];
+            break;
+    }
+}
+
+- (void)setSecurityPolicy:(AFSecurityPolicy *)securityPolicy {
+    self.sessionManager.securityPolicy = securityPolicy;
 }
 
 #pragma mark - Getters
 
-- (NSString *)privateKey {
-    
-    return @"";
+- (NSString *)apiBaseURL { return @""; }
+
+- (NSString *)apiVersion { return @"0.1.0"; }
+
+- (NSDictionary *)commonParams { return nil; }
+
+- (NSDictionary *)commonHeaders { return nil; }
+
+#if kXMNAFCacheAvailable
+
+- (NSString *)cachePath {
+    if (_cachePath.length) { return _cachePath; }
+    _cachePath = [NSString stringWithFormat:@"com.xmfraker.xmafnetwork/caches/%@", self.apiBaseURL];
+    return _cachePath;
 }
 
-- (NSString *)publicKey {
-    
-    return @"";
-}
-
-- (NSString *)apiBaseURL {
-    
-    return @"";
-}
-
-- (NSString *)apiVersion {
-    
-    return @"v0.0";
-}
-
-- (NSDictionary *)commonParams {
-    
-    return nil;
-}
-
-- (NSDictionary *)commonHeaders {
-    
-    return nil;
-}
-
-- (BOOL)shouldSign {
-    
-    return NO;
-}
-
-- (BOOL)shouldLog {
-    
-#ifdef DEBUG
-    return YES;
-#else
-    return NO;
 #endif
+
+- (dispatch_queue_t)serviceQueue {
+    return dispatch_queue_create("com.xmfraker.network.complete.queue", DISPATCH_QUEUE_CONCURRENT);
 }
 
-- (AFHTTPSessionManager *)sessionManager{
-    
-    //    AFSecurityPolicy *policy = nil;
-    //    {
-    //        /** 设置HTTPS 证书 */
-    //        NSString *cerPath = [[NSBundle mainBundle] pathForResource:@"https" ofType:@"cer"];
-    //        NSData * certData =[NSData dataWithContentsOfFile:cerPath];
-    //        policy = [AFSecurityPolicy policyWithPinningMode:AFSSLPinningModeCertificate withPinnedCertificates:[NSSet setWithObjects:certData, nil]];
-    //
-    //        /** 设置不允许五小证书 */
-    //        policy.allowInvalidCertificates = NO;
-    //        kAFHTTPSessionManager.securityPolicy = policy;
-    //    }
-    //    {
-    //        /** 使用publickkey 方式 */
-    //        NSString *publicKey = @"";
-    //        policy = [AFSecurityPolicy policyWithPinningMode:AFSSLPinningModePublicKey withPinnedCertificates:[NSSet setWithObjects:[publicKey dataUsingEncoding:NSUTF8StringEncoding], nil]];
-    //        /** 设置不允许五小证书 */
-    //        policy.allowInvalidCertificates = NO;
-    //        kAFHTTPSessionManager.securityPolicy = policy;
-    //    }
-    
-    return kAFHTTPSessionManager;
+- (XMNAFRequestSerializerType)requestSerializerType {
+
+    id<AFURLRequestSerialization> serialization = self.sessionManager.requestSerializer;
+    if ([serialization isKindOfClass:[AFJSONResponseSerializer class]]) { return XMNAFRequestSerializerJSON; }
+    return XMNAFRequestSerializerHTTP;
 }
+
+- (XMNAFResponseSerializerType)responseSerializerType {
+    
+    id<AFURLResponseSerialization> serialization = self.sessionManager.responseSerializer;
+    if ([serialization isKindOfClass:[AFJSONResponseSerializer class]]) {
+        return XMNAFResponseSerializerJSON;
+    } else if ([serialization isKindOfClass:[AFXMLParserResponseSerializer class]]) {
+        return XMNAFResponseSerializerXML;
+    } else {
+        return XMNAFResponseSerializerHTTP;
+    }
+}
+
+- (AFSecurityPolicy *)securityPolicy { return self.sessionManager.securityPolicy; }
+
 @end
 
-@implementation XMNAFService (RequestMethod)
+@implementation XMNAFService (ManageService)
 
-
-#pragma mark - Method
-
-- (NSString *)requestWithMode:(int)aMode
-                       params:(NSDictionary *)aParams
-                   methodName:(NSString *)aMethodName
-              completionBlock:(void(^)(XMNAFNetworkResponse *response,NSError *error))aCompletionBlock {
++ (void)storeService:(XMNAFService *)service forIdentifier:(NSString *)identifier {
     
-    //1.获取请求service
-    NSAssert(self, @"service not exist !!!");
-    
-    NSMutableDictionary *allParams = [NSMutableDictionary dictionaryWithDictionary:aParams];
-    
-    //添加commonParams
-    if (self.commonParams) {
-        [allParams addEntriesFromDictionary:self.commonParams];
+    if (!identifier.length) { return; }
+    pthread_mutex_lock(&kXMNAFMutexLock);
+    if (!service) {
+        [kXMNAFSeriviceDictionaryM removeObjectForKey:identifier];
+    } else {
+        [kXMNAFSeriviceDictionaryM setObject:service forKey:identifier];
     }
-    
-    if (self.commonHeaders && self.commonHeaders.allKeys.count > 0) {
-        __weak typeof(*&self) wSelf = self;
-        [self.commonHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-            __strong typeof(*&wSelf) self = wSelf;
-            [self.sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
-        }];
-    }
-    
-    NSURLSessionDataTask *dataTask;
-    NSString *urlString = [self.apiBaseURL stringByAppendingString:aMethodName];
-    NSString *requestID = [[self class] generateRequestKeyWithURLString:urlString params:aParams];
-    
-    __weak typeof(*&self) wSelf = self;
-    switch (aMode) {
-        case XMNAFNetworkRequestPOST:
-        {
-            dataTask = [self.sessionManager POST:urlString parameters:allParams progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFSuccessResponseWithDataTask:task responseObject:responseObject completedBlock:aCompletionBlock];
-            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFFailedResponseWithDataTask:task error:error completedBlock:aCompletionBlock];
-            }];
-        }
-            break;
-        case XMNAFNetworkRequestPUT:
-        {
-            dataTask = [self.sessionManager PUT:urlString parameters:allParams success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFSuccessResponseWithDataTask:task responseObject:responseObject completedBlock:aCompletionBlock];
-            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFFailedResponseWithDataTask:task error:error completedBlock:aCompletionBlock];
-            }];
-        }
-            break;
-        case XMNAFNetworkRequestDELETE:
-            
-        {
-            dataTask = [self.sessionManager DELETE:urlString parameters:allParams success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFSuccessResponseWithDataTask:task responseObject:responseObject completedBlock:aCompletionBlock];
-            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFFailedResponseWithDataTask:task error:error completedBlock:aCompletionBlock];
-            }];
-        }
-            break;
-        case XMNAFNetworkRequestGET:
-        default:
-        {
-            dataTask = [self.sessionManager GET:urlString parameters:allParams progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFSuccessResponseWithDataTask:task responseObject:responseObject completedBlock:aCompletionBlock];
-            } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-                
-                __strong typeof(*&wSelf) self = wSelf;
-                [self handleAFFailedResponseWithDataTask:task error:error completedBlock:aCompletionBlock];
-            }];
-        }
-            break;
-    }
-
-    dataTask.identifier = requestID;
-    kXMNAFRequestIDDictionaryM[requestID] = dataTask;
-    
-    /** 添加打印信息 */
-    [XMNAFLogger logRequestInfo:urlString
-                         params:allParams
-                         method:dataTask.currentRequest.HTTPMethod
-                       dataTask:dataTask
-                     forService:self];
-    
-    return requestID;
+    pthread_mutex_unlock(&kXMNAFMutexLock);
 }
 
-- (void)handleAFSuccessResponseWithDataTask:(NSURLSessionDataTask *)dataTask
-                             responseObject:(id)responseObject
-                             completedBlock:(void(^)(XMNAFNetworkResponse *response,NSError *error))completedBlock {
++ (XMNAFService *)serviceWithIdentifier:(NSString *)identifier {
     
-    
-    
-    XMNAFNetworkResponse *response = [[XMNAFNetworkResponse alloc] initWithResponse:responseObject error:nil];
-    
-    /** 添加结束日志输出 -> 增加了请求参数的输出 */
-    [XMNAFLogger logResponseInfoWithResponse:(NSHTTPURLResponse *)dataTask.response
-                              responseString:response.responseString
-                                     request:dataTask.currentRequest
-                                       error:nil
-                                      params:dataTask.requestParams
-                                  forService:self];
+    if (!identifier.length) { return nil; }
+    pthread_mutex_lock(&kXMNAFMutexLock);
+    XMNAFService *service = [kXMNAFSeriviceDictionaryM  objectForKey:identifier];
+    pthread_mutex_unlock(&kXMNAFMutexLock);
+    return service;
+}
 
++ (NSArray <XMNAFService *> *)storedServices {
     
-    completedBlock ? completedBlock(response, nil) : nil;
-    if ([kXMNAFRequestIDDictionaryM.allValues containsObject:dataTask]) {
-        /** 增加移除datatask判断 */
-        if (dataTask.identifier) {
-            [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
-        }else {
-            NSArray<NSString *> *identifiers = [kXMNAFRequestIDDictionaryM allKeysForObject:dataTask];
-            [kXMNAFRequestIDDictionaryM removeObjectsForKeys:identifiers];
-        }
-    }else {
-        /** 如果请求不在kXMNAFRequestIDDictionaryM 中*/
-        XMNLog(@"请求不在队列中");
+    pthread_mutex_lock(&kXMNAFMutexLock);
+    NSArray<XMNAFService *> *services = [kXMNAFSeriviceDictionaryM allValues];
+    pthread_mutex_unlock(&kXMNAFMutexLock);
+    return services;
+}
+
++ (void)configServiceModeForStoredServices:(XMNAFServiceMode)mode {
+    
+    for (XMNAFService *service in [self storedServices]) {
+        service.serviceMode = mode;
     }
-}
-
-
-- (void)handleAFFailedResponseWithDataTask:(NSURLSessionDataTask *)dataTask
-                                     error:(NSError *)error
-                            completedBlock:(void(^)(XMNAFNetworkResponse *response,NSError *error))completedBlock {
-    
-    XMNAFNetworkResponse *response = [[XMNAFNetworkResponse alloc] initWithResponse:nil error:error];
-    
-    /** 添加结束日志输出 -> 增加了请求参数的输出 */
-    [XMNAFLogger logResponseInfoWithResponse:(NSHTTPURLResponse *)dataTask.response
-                              responseString:response.responseString
-                                     request:dataTask.currentRequest
-                                       error:error
-                                      params:dataTask.requestParams
-                                  forService:self];
-    
-    completedBlock ? completedBlock(response, error) : nil;
-    if ([kXMNAFRequestIDDictionaryM.allValues containsObject:dataTask]) {
-        if (dataTask.identifier) {
-            [kXMNAFRequestIDDictionaryM removeObjectForKey:dataTask.identifier];
-        }else {
-            NSArray<NSString *> *identifiers = [kXMNAFRequestIDDictionaryM allKeysForObject:dataTask];
-            [kXMNAFRequestIDDictionaryM removeObjectsForKeys:identifiers];
-        }
-    }else {
-        /** 如果请求不在kXMNAFRequestIDDictionaryM 中*/
-        XMNLog(@"请求不在队列中");
-    }
-}
-
-#pragma mark - Class Method
-
-+ (NSString *)generateRequestKeyWithURLString:(NSString *)URLString
-                                       params:(NSDictionary *)params {
-    
-    NSAssert(URLString, @"URLString 不能为空");
-    NSMutableDictionary *dict = [NSMutableDictionary dictionaryWithDictionary:params];
-    dict[@"URLString"] = URLString;
-    NSString *md5Value = XMNAF_MD5([dict XMNAF_jsonString]);
-    return md5Value;
-}
-
-+ (void)cancelTaskWithIdentifier:(NSString *)aID {
-    
-    if (!aID) {
-        return;
-    }
-    NSURLSessionDataTask *dataTask = kXMNAFRequestIDDictionaryM[aID];
-    [dataTask cancel];
-    [kXMNAFRequestIDDictionaryM removeObjectForKey:aID];
-}
-
-+ (void)cancelTasksWithIdentifiers:(NSArray *)aIDs {
-    
-    for (NSString *aID in aIDs) {
-        [[self class] cancelTaskWithIdentifier:aID];
-    }
-}
-
-+ (NSURLSessionDataTask *)taskWithIdentifier:(NSString *)aID {
-    
-    return kXMNAFRequestIDDictionaryM[aID];
 }
 
 @end

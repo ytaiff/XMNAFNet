@@ -8,6 +8,8 @@
 
 #import <UIKit/UIKit.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 /**
  *  @brief 定义经过id<XMNAFNetworkRequestDataReformer> 处理过的Model
  */
@@ -15,10 +17,8 @@
 
 /** 经过id<XMNAFNetworkRequestDataReformer>处理过的 result */
 @property (strong, nonatomic, nullable) id result;
-
 /** 具体的业务请求结果 */
 @property (assign, nonatomic) NSInteger status;
-
 /** message信息 */
 @property (copy, nonatomic, nullable)   NSString *message;
 /** 请求的错误 */
@@ -26,8 +26,7 @@
 
 
 @required
-+ (id<XMNAFReformeredModel> __nonnull)reformeredModelWithOriginData:(id __nullable)aData
-                                                               error:(NSError * __nullable)error;
++ (id<XMNAFReformeredModel>)reformeredModelWithOriginData:(id __nullable)data error:(NSError * __nullable)error;
 
 @end
 
@@ -35,7 +34,9 @@
 @protocol XMNAFNetworkRequestDataReformer <NSObject>
 
 @required
-- (id<XMNAFReformeredModel> _Nullable)request:(XMNAFNetworkRequest * _Nonnull)aRequest
-                           reformerOriginData:(id _Nullable)aData
-                                        error:(NSError * _Nullable)aError;
+- (id<XMNAFReformeredModel> _Nullable)request:(XMNAFNetworkRequest *)request
+                           reformerOriginData:(id _Nullable)data
+                                        error:(NSError * _Nullable)error;
 @end
+
+NS_ASSUME_NONNULL_END

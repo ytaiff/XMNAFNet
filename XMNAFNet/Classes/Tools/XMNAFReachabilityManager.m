@@ -49,33 +49,21 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
     return manager;
 }
 
-+ (void)initialize {
-    
-    [[XMNAFReachabilityManager sharedManager] telephonyNetworkInfo];
-}
++ (void)initialize { [[XMNAFReachabilityManager sharedManager] telephonyNetworkInfo]; }
 
-
-- (void)dealloc {
-    
-    NSLog(@"%@  dealloc",NSStringFromClass([self class]));
-    
-    [self stopMonitoring];
-}
-
+- (void)dealloc { [self stopMonitoring]; }
 
 #pragma mark - Methods
 
 - (void)startMonitoring {
-    
-    
+
     [self startMonitoringWithURL:nil
                         delegate:nil
            statusDidChangedBlock:nil];
 }
 
 - (void)startMonitoringWithURL:(NSURL *)URL {
-    
-    
+
     [self startMonitoringWithURL:URL
                         delegate:nil
            statusDidChangedBlock:nil];
@@ -113,7 +101,7 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
     
     if (URL) {
         self.reachability = [Reachability reachabilityWithHostName:[URL host]];
-    }else {
+    } else {
         self.reachability = [Reachability reachabilityForInternetConnection];
     }
     /** 注册监听函数 */
@@ -126,9 +114,7 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
 
 - (void)stopMonitoring {
     
-    if (!self.isMonitoring) {
-        return;
-    }
+    if (!self.isMonitoring) { return; }
     
     /** 移除监听函数 */
     [[NSNotificationCenter defaultCenter] removeObserver:self name:kReachabilityChangedNotification object:nil];
@@ -220,40 +206,21 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
  *  @brief 是否正在监听中
  *
  */
-- (BOOL)isMonitoring {
-    
-    return _monitoring;
-}
+- (BOOL)isMonitoring { return _monitoring; }
 
-- (BOOL)isWifiEnable {
-    
-    return self.status == XMNAFReachablityStatusWifi;
-}
+- (BOOL)isWifiEnable { return self.status == XMNAFReachablityStatusWifi; }
 
-- (BOOL)isNetworkEnable {
-    
-    return self.status != XMNAFReachablityStatusUnknown;
-}
+- (BOOL)isNetworkEnable { return self.status != XMNAFReachablityStatusUnknown; }
 
 - (BOOL)isHighSpeedNetwork {
-    
     return self.status == XMNAFReachablityStatus4G || self.status == XMNAFReachablityStatusWifi || self.status == XMNAFReachablityStatus3G;
 }
 
-/**
- *  @brief 2G数组
- *
- */
--(NSArray *)technology2GArray{
-    
-    return @[CTRadioAccessTechnologyEdge,CTRadioAccessTechnologyGPRS];
-}
+/** @brief 2G数组 */
+-(NSArray *)technology2GArray{ return @[CTRadioAccessTechnologyEdge,CTRadioAccessTechnologyGPRS]; }
 
 
-/**
- *  @brief 3G数组
- *
- */
+/** @brief 3G数组 */
 -(NSArray *)technology3GArray{
     
     return @[CTRadioAccessTechnologyHSDPA,
@@ -266,14 +233,8 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
              CTRadioAccessTechnologyeHRPD];
 }
 
-/**
- *  @brief 4G数组
- *
- */
--(NSArray *)technology4GArray{
-    
-    return @[CTRadioAccessTechnologyLTE];
-}
+/** @brief 4G数组 */
+-(NSArray *)technology4GArray{ return @[CTRadioAccessTechnologyLTE]; }
 
 #pragma mark - Class Methods
 

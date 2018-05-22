@@ -23,20 +23,7 @@
 [[NSBundle bundleWithIdentifier:@"com.XMFraker.XMNAFNetworkFramework"] localizedStringForKey:(key) value:@"" table:nil]
 
 FOUNDATION_EXTERN NSString * _Nullable XMNAF_MD5(NSString * _Nonnull str);
-
-/** 默认请求最长时间 */
-static NSTimeInterval kXMNAFNetworkTimeoutSeconds = 20.0f;
-
-/** 默认Request是否缓存 */
-static BOOL kXMNAFNetworkRequestShouldCache = NO;
-/** 默认Request缓存时长 */
-static NSTimeInterval kXMNAFNetowrkRequestCacheOutdateTimeSeconds = 300;
-/** 最大缓存Request最大数量 */
-static NSUInteger kXMNAFNetworkCacheCountLimit = 1000; // 最多1000条cache
-
-// 在调用成功之后的params字典里面，用这个key可以取出requestID
-FOUNDATION_EXTERN NSString * _Nonnull const kXMNAFNetworkRequestIDKey;
-
-FOUNDATION_EXTERN NSString * _Nonnull const kXMNAFNetworkErrorDomain;
+FOUNDATION_EXTERN NSError * _Nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable message);
+FOUNDATION_EXPORT NSString *__nonnull const kXMNAFNetworkErrorDomain;
 
 #endif /* XMNAFNetworkConfiguration_h */
