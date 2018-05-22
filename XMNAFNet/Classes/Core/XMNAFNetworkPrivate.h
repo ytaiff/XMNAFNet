@@ -21,6 +21,16 @@
     #endif
 #endif
 
+#if __has_include(<XMNAFNet/XMNAFReachabilityManager.h>)
+    #import <XMNAFNet/XMNAFReachabilityManager.h>
+    #import <XMNAFNet/XMNAFNetworkUploadManager.h>
+    #import <XMNAFNet/XMNAFNetworkDownloadManager.h>
+    #ifndef kXMNAFReachablityAvailable
+        #define kXMNAFReachablityAvailable 1
+    #endif
+#endif
+
+
 NS_ASSUME_NONNULL_BEGIN
 @interface XMNAFNetworkRequest ()
 

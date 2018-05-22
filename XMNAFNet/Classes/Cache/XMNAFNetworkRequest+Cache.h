@@ -20,7 +20,7 @@ typedef NS_ENUM(NSUInteger, XMNAFNetworkRequestCachePolicy) {
     XMNAFNetworkRequestCachePolicyReturnAndRefreshCacheData
 };
 
-typedef NS_ENUM(NSUInteger, XMNAFRequestCacheErrorCode) {
+typedef NS_ENUM(NSInteger, XMNAFRequestCacheErrorCode) {
     XMNAFRequestCacheErrorExpired = -201,
     XMNAFRequestCacheErrorUnexists = -100,
     XMNAFRequestCacheErrorVersionMismatch = -202,

@@ -8,6 +8,7 @@
 
 
 #import "XMNAFNetworkPrivate.h"
+#import "XMNAFNetworkConfiguration.h"
 
 #if kXMNAFCacheAvailable
     #import "XMNAFCacheMeta.h"
@@ -141,6 +142,21 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     dispatch_async(self.service.sessionManager.completionQueue, ^{
         
         __strong typeof(wSelf) self = wSelf;
+        
+        /** 2. 判断当前网络是否可用, 网络不可用直接返回 */
+        if (!self.isReachable) {
+            [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
+            return;
+        }
+        
+#if kXMNAFReachablityAvailable
+        /** 3. 判断当前请求是否允许 */
+        if (!self.isAllowsCellularAccess && ![XMNAFReachabilityManager isWifiEnable]) {
+            [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
+            return;
+        }
+#endif
+        
         if (completionHandler) { self.completionBlock = completionHandler; }
         if (self.isExecuting) { [self cancelRequest]; }
         
@@ -233,7 +249,6 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     self.error = error;
     
 #if kXMNAFCacheAvailable
-    
     if (self.error == nil) {
         BOOL shouldCache = self.shouldCache;
         
