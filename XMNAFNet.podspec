@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'XMNAFNet'
-  s.version          = '0.4.1'
+  s.version          = '0.4.2'
   s.summary          = '基于AFNetworking封装的网络请求类库'
   s.homepage         = 'https://github.com/ws00801526/XMNAFNet'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
