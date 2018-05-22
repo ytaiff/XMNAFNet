@@ -76,12 +76,11 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
         _sessionManager.completionQueue = self.serviceQueue;
         _sessionManager.session.configuration.HTTPMaximumConnectionsPerHost = 4;
 
-        _sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+        _sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
         _sessionManager.requestSerializer.timeoutInterval = 10.f;
         _sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
         _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
         _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
-        
 #if kXMNAFCacheAvailable
         _cache = [YYCache cacheWithPath:self.cachePath];
 #endif
