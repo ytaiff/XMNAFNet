@@ -61,7 +61,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, copy, readonly, nullable)   NSDictionary *commonParams;
 /** api的一些通用headers */
 @property (nonatomic, copy, readonly, nullable)   NSDictionary *commonHeaders;
-/** api请求的缓存地址 默认 @"com.xmfraker.xmafnetwork/caches/{self.apiBaseURL}" */
+/** api请求的缓存地址 默认 @"~/documents/com.xmfraker.xmafnetwork/caches/{self.apiBaseURL.host}" */
 @property (copy, nonatomic, readonly)   NSString *cachePath;
 /** 请求处理的相关队列 默认自定义串行队列 */
 @property (assign, nonatomic, readonly) dispatch_queue_t serviceQueue;

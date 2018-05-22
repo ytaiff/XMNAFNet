@@ -244,11 +244,11 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     if (self.error == nil) {
         BOOL shouldCache = self.shouldCache;
         
-        if (self.interceptor && [self.interceptor respondsToSelector:@selector(requestShouldCache:)]) {
+        if (shouldCache && self.interceptor && [self.interceptor respondsToSelector:@selector(requestShouldCache:)]) {
             shouldCache = shouldCache && [self.interceptor requestShouldCache:self];
         }
         
-        if (self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(requestShouldCacheResponse:)]) {
+        if (shouldCache && self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(requestShouldCacheResponse:)]) {
             shouldCache = shouldCache && [self.responseInterceptor requestShouldCacheResponse:self];
         }
         
@@ -279,7 +279,7 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 - (void)requestDidCompletedWithCachedMeta:(XMNAFCacheMeta *)meta error:(NSError *)error {
     
     self.error = error;
-    self.responseObject = [meta.cachedData yy_modelToJSONObject];
+    self.responseObject = [NSJSONSerialization JSONObjectWithData:meta.cachedData options:NSJSONReadingMutableContainers error:nil];
     if (self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(responseObjectForRequest:error:)]) {
         self.responseObject = [self.responseInterceptor responseObjectForRequest:self error:self.error];
     }

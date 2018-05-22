@@ -120,7 +120,6 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
             break;
         default:
             self.sessionManager.responseSerializer = [AFHTTPResponseSerializer serializer];
-            self.sessionManager.responseSerializer.acceptableContentTypes = [NSSet setWithObject:@"text/html"];
             break;
     }
 }
@@ -143,7 +142,13 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 
 - (NSString *)cachePath {
     if (_cachePath.length) { return _cachePath; }
-    _cachePath = [NSString stringWithFormat:@"com.xmfraker.xmafnetwork/caches/%@", self.apiBaseURL];
+    NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
+    if (self.apiBaseURL.length) {
+        NSURL *url = [NSURL URLWithString:self.apiBaseURL];
+        _cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/%@", documentPath, url.host.length ? url.host : @"default"];
+    } else {
+        _cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/default", documentPath];
+    }
     return _cachePath;
 }
 

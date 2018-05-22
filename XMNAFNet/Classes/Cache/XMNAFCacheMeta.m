@@ -28,7 +28,21 @@
     if (self = [super init]) {
         _cachedVersion = request.cacheVersion;
         _cachedResponseHeaders = request.responseHeaders;
-        _cachedData = [request.responseObject yy_modelToJSONData];
+        if (request.responseObject) {
+            _cachedData = [NSJSONSerialization dataWithJSONObject:request.responseObject
+                                                          options:NSJSONWritingPrettyPrinted
+                                                            error:nil];
+        } else if (request.responseJSONObject) {
+            _cachedData = [NSJSONSerialization dataWithJSONObject:request.responseJSONObject
+                                                          options:NSJSONWritingPrettyPrinted
+                                                            error:nil];
+        } else if (request.responseData) {
+            _cachedData = request.responseData;
+        } else if (request.responseString) {
+            _cachedData = [NSJSONSerialization dataWithJSONObject:[[request responseString] dataUsingEncoding:NSUTF8StringEncoding]
+                                                          options:NSJSONWritingPrettyPrinted
+                                                            error:nil];
+        }
         _expiredDate = [NSDate dateWithTimeIntervalSinceNow:request.cacheTime];
     }
     return self;

@@ -214,8 +214,6 @@ static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
         
         [request requestDidCompletedWithError:error];
         [self.requestMappers removeObjectForKey:@(datatask.taskIdentifier)];
-        
-        XMNLog(@"receive responseObject :%@ -- currentThread: %@",responseObject, [NSThread currentThread]);
     }];
 }
 
