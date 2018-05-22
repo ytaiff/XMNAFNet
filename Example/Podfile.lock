@@ -16,14 +16,21 @@ PODS:
     - AFNetworking/NSURLSession
   - Kiwi (2.4.0)
   - Reachability (3.2)
-  - XMNAFNet (0.1.3):
-    - XMNAFNet/Core (= 0.1.3)
-    - XMNAFNet/Tools (= 0.1.3)
-  - XMNAFNet/Core (0.1.3):
+  - XMNAFNet (0.4.0):
+    - XMNAFNet/Cache (= 0.4.0)
+    - XMNAFNet/Core (= 0.4.0)
+    - XMNAFNet/Tools (= 0.4.0)
+  - XMNAFNet/Cache (0.4.0):
+    - XMNAFNet/Core
+    - YYCache
+    - YYModel
+  - XMNAFNet/Core (0.4.0):
     - AFNetworking
-  - XMNAFNet/Tools (0.1.3):
+  - XMNAFNet/Tools (0.4.0):
     - Reachability
     - XMNAFNet/Core
+  - YYCache (1.0.4)
+  - YYModel (1.0.4)
 
 DEPENDENCIES:
   - Kiwi
@@ -37,8 +44,10 @@ SPEC CHECKSUMS:
   AFNetworking: 5e0e199f73d8626b11e79750991f5d173d1f8b67
   Kiwi: f49c9d54b28917df5928fe44968a39ed198cb8a8
   Reachability: 33e18b67625424e47b6cde6d202dce689ad7af96
-  XMNAFNet: fdb77a38db626d0df664d3654deac7351de44397
+  XMNAFNet: a5f4babf2ede4cc192d977bf59a4a9f32424e70b
+  YYCache: 8105b6638f5e849296c71f331ff83891a4942952
+  YYModel: 2a7fdd96aaa4b86a824e26d0c517de8928c04b30
 
 PODFILE CHECKSUM: 7a1e44a53384479ccba11bc7267dbd48755ac018
 
-COCOAPODS: 1.2.1
+COCOAPODS: 1.3.1
