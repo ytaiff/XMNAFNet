@@ -64,7 +64,7 @@ static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
     NSDictionary *params = nil;
     NSString *URLString = [self absoluteURLStringWithRequest:request params:&params];
     
-    AFHTTPRequestSerializer *serializer = self.sessionManager.requestSerializer;
+    __kindof AFHTTPRequestSerializer *serializer = self.sessionManager.requestSerializer;
     serializer.allowsCellularAccess = request.allowsCellularAccess;
     serializer.timeoutInterval = request.timeoutInterval;
     if (request.authorizationHeaderFields.count == 2) {

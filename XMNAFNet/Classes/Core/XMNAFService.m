@@ -102,8 +102,9 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 - (void)setRequestSerializerType:(XMNAFRequestSerializerType)type {
     if (type == XMNAFRequestSerializerJSON) {
         self.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+    } else {
+        self.sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
     }
-    self.sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
     self.sessionManager.requestSerializer.timeoutInterval = 10.f;
     self.sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
     self.sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
