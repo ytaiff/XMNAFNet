@@ -9,22 +9,22 @@
 
 #import <XMNAFNet/XMNAFNetworkRequest.h>
 
-typedef NS_ENUM(NSUInteger, XMNAFNetworkRequestCachePolicy) {
+typedef NS_ENUM(NSUInteger, XMNAFNetworkCachePolicy) {
     /** 不使用缓存数据 */
-    XMNAFNetworkRequestCachePolicyInnoringCacheData = 0,
+    XMNAFNetworkCachePolicyInnoringCacheData = 0,
     /** 如果存在缓存数据则使用, 否则加载失败, 不去发起网络请求 */
-    XMNAFNetworkRequestCachePolicyReturnCacheDataDontLoad,
+    XMNAFNetworkCachePolicyReturnCacheDataDontLoad,
     /** 如果存在缓存数据则使用, 否则发起网络请求, 加载缓存数据 */
-    XMNAFNetworkRequestCachePolicyReturnCacheDataElseLoad,
+    XMNAFNetworkCachePolicyReturnCacheDataElseLoad,
     /** 如果存在缓存数据先使用, 并且发起网络请求, 刷新缓存数据 */
-    XMNAFNetworkRequestCachePolicyReturnAndRefreshCacheData
+    XMNAFNetworkCachePolicyReturnAndRefreshCacheData
 };
 
-typedef NS_ENUM(NSInteger, XMNAFRequestCacheErrorCode) {
-    XMNAFRequestCacheErrorExpired = -201,
-    XMNAFRequestCacheErrorUnexists = -100,
-    XMNAFRequestCacheErrorVersionMismatch = -202,
-    XMNAFRequestCacheErrorInvaildCacheData = -203,
+typedef NS_ENUM(NSInteger, XMNAFNetworkCacheErrorCode) {
+    XMNAFNetworkCacheErrorExpired = -201,
+    XMNAFNetworkCacheErrorUnexists = -100,
+    XMNAFNetworkCacheErrorVersionMismatch = -202,
+    XMNAFNetworkCacheErrorInvaildCacheData = -203,
 };
 
 @class XMNAFCacheMeta;
@@ -38,7 +38,7 @@ typedef void(^XMNAFCacheMetaHandler)(XMNAFCacheMeta *__nullable meta, NSError *_
 /** 缓存时间 默认 0.f */
 @property (assign, nonatomic) NSTimeInterval cacheTime;
 /** 缓存策略 默认 InnoringCacheData */
-@property (assign, nonatomic) XMNAFNetworkRequestCachePolicy cachePolicy;
+@property (assign, nonatomic) XMNAFNetworkCachePolicy cachePolicy;
 /** cacheTime > 0 && cachePolicy != ignoringCahceData 时为YES */
 @property (assign, nonatomic, readonly) BOOL shouldCache;
 

@@ -177,22 +177,22 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 #if kXMNAFCacheAvailable
         self.cacheKey = [self.service cacheKeyWithRequest:self];
         
-        if (self.cachePolicy == XMNAFNetworkRequestCachePolicyInnoringCacheData) {
+        if (self.cachePolicy == XMNAFNetworkCachePolicyInnoringCacheData) {
             [self.service startRequest:self];
         } else {
             __weak typeof(self) wSelf = self;
             [self loadResponseObjectFromCacheWithCompletionHandler:^(XMNAFCacheMeta *meta, NSError *error) {
                 __strong typeof(wSelf) self = wSelf;
                 switch (self.cachePolicy) {
-                    case XMNAFNetworkRequestCachePolicyReturnCacheDataDontLoad:
+                    case XMNAFNetworkCachePolicyReturnCacheDataDontLoad:
                         [self requestDidCompletedWithCachedMeta:meta error:error];
                         break;
-                    case XMNAFNetworkRequestCachePolicyReturnCacheDataElseLoad:
-                    case XMNAFNetworkRequestCachePolicyReturnAndRefreshCacheData:
+                    case XMNAFNetworkCachePolicyReturnCacheDataElseLoad:
+                    case XMNAFNetworkCachePolicyReturnAndRefreshCacheData:
                     {
                         BOOL shouldContinue = YES;
                         if (meta && !error) {
-                            shouldContinue = self.cachePolicy != XMNAFNetworkRequestCachePolicyReturnCacheDataElseLoad;
+                            shouldContinue = self.cachePolicy != XMNAFNetworkCachePolicyReturnCacheDataElseLoad;
                             [self requestDidCompletedWithCachedMeta:meta error:nil];
                         }
                         if (shouldContinue) [self.service startRequest:self];

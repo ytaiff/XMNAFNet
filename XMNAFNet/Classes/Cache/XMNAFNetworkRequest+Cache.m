@@ -31,18 +31,18 @@
         XMNAFCacheMeta *cacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
         if (!cacheMeta.isCahceDataValid) {
             [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFRequestCacheErrorInvaildCacheData, @"缓存数据无效"));
+            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorInvaildCacheData, @"缓存数据无效"));
         } else if(![cacheMeta.cachedVersion isEqualToString:self.cacheVersion]) {
             [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFRequestCacheErrorVersionMismatch, @"缓存数据版本不匹配"));
+            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorVersionMismatch, @"缓存数据版本不匹配"));
         } else if(cacheMeta.isExpired) {
             [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFRequestCacheErrorExpired, @"缓存数据已经过期"));
+            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorExpired, @"缓存数据已经过期"));
         } else {
             handler(cacheMeta, nil);
         }
     } else {
-        handler(nil, kXMNAFNetworkError(XMNAFRequestCacheErrorUnexists, @"缓存数据不存在"));
+        handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorUnexists, @"缓存数据不存在"));
     }
 }
 
@@ -56,7 +56,7 @@
     objc_setAssociatedObject(self, @selector(cacheVersion), cacheVersion, OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
-- (void)setCachePolicy:(XMNAFNetworkRequestCachePolicy)cachePolicy {
+- (void)setCachePolicy:(XMNAFNetworkCachePolicy)cachePolicy {
     objc_setAssociatedObject(self, @selector(cachePolicy), @(cachePolicy), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
@@ -72,10 +72,10 @@
     return 0.f;
 }
 
-- (XMNAFNetworkRequestCachePolicy)cachePolicy {
+- (XMNAFNetworkCachePolicy)cachePolicy {
     id obj = objc_getAssociatedObject(self, _cmd);
     if (obj && [obj respondsToSelector:@selector(intValue)]) { return [obj intValue]; }
-    return XMNAFNetworkRequestCachePolicyInnoringCacheData;
+    return XMNAFNetworkCachePolicyInnoringCacheData;
 }
 
 - (NSString *)cacheVersion {
@@ -87,7 +87,7 @@
 - (NSString *)cacheKey { return objc_getAssociatedObject(self, _cmd); }
 
 - (BOOL)shouldCache {
-    return self.cachePolicy != XMNAFNetworkRequestCachePolicyInnoringCacheData && self.cacheTime > 0;
+    return self.cachePolicy != XMNAFNetworkCachePolicyInnoringCacheData && self.cacheTime > 0;
 }
 
 #pragma mark - Class
