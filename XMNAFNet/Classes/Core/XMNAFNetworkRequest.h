@@ -162,7 +162,7 @@ typedef void(^XMNAFNetworkProgressHandler)(NSProgress *__nullable progress);
 @property (copy, atomic, nullable)   XMNAFNetworkConstructingHandler constuctingHandler;
 /** api 请求带有的额外信息 请求过程中不做任何处理 */
 @property (copy, atomic, nullable)   NSDictionary *userInfo;
-/** api 请求的下载存储路径 */
+/** api 请求的下载存储路径 默认 com.xmfraker.xmafnetwork/download */
 @property (copy, atomic, nullable)   NSString *downloadPath;
 
 #pragma mark - 提供给子类request实例使用的方法

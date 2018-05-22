@@ -24,7 +24,7 @@ static inline NSStringEncoding kXMNAFNetworkEncodingFromRequest(__kindof XMNAFNe
 
 static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
     
-    NSString *dirPath = [[NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"com.XMFraker.NNetwork"];
+    NSString *dirPath = [[NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"com.xmfraker.xmafnetwork/download"];
     
     NSString *filename = downloadPath;
     if ([downloadPath componentsSeparatedByString:@"/"].count) {

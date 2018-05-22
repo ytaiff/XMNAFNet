@@ -101,27 +101,19 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     return self.responseObject;
 }
 
-- (void)loadData {
-    return [self loadDataWithPathParams:nil params:nil];
-}
+- (void)loadData { [self startRequestWithParams:nil completionHandler:NULL]; }
 
 - (void)loadDataWithParams:(NSDictionary *)aParams {
     
-    return [self loadDataWithPathParams:nil
-                                 params:aParams];
+    [self startRequestWithParams:aParams completionHandler:NULL];
 }
 
 - (void)loadDataWithPathParams:(NSDictionary *)pathParams
                                         params:(NSDictionary *)params {
     
-    NSMutableDictionary *allParams = [pathParams mutableCopy];
+    NSMutableDictionary *allParams = [pathParams ? : @{} mutableCopy];
     if (params && [params isKindOfClass:[NSDictionary class]]) { [allParams addEntriesFromDictionary:params]; }
-    return [self loadDataInternalWithPathParams:pathParams params:[allParams copy]];
-}
-
-- (void)loadDataInternalWithPathParams:(NSDictionary *)pathParams params:(NSDictionary *)params {
-
-    [self startRequestWithParams:params completionHandler:NULL];
+    [self startRequestWithParams:allParams completionHandler:NULL];
 }
 
 - (void)startRequest {
