@@ -18,6 +18,7 @@
 NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 
 @implementation XMNAFNetworkRequest
+@synthesize service = _service;
 @synthesize methodName = _methodName;
 @synthesize requestMode = _requestMode;
 @synthesize serviceIdentifier = _serviceIdentifier;
@@ -63,23 +64,23 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 
 #pragma mark - Override Methods
 
-- (NSString *)description {
+- (NSString *)debugDescription {
     
     NSMutableString *desc = [NSMutableString stringWithFormat:@"<%@: %p>{ URL: %@ } { method: %@ }", NSStringFromClass([self class]), self, self.currentRequest.URL, self.currentRequest.HTTPMethod];
     
     if (self.currentRequest.URL) {
         NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:self.currentRequest.URL];
         if (cookies.count) {
-            [desc appendFormat:@"{ params: %@ } ", cookies];
+            [desc appendFormat:@"\n{ Cookies: %@ } ", cookies];
         }
     }
     
     if (self.requestParams.count) {
-        [desc appendFormat:@"{ params: %@ } ", self.requestParams];
+        [desc appendFormat:@"\n{ Params: %@ } ", self.requestParams];
     }
     
     if (self.error) {
-        [desc appendFormat:@"{ error: %@ } ", self.error];
+        [desc appendFormat:@"\n{ Error: %@ } ", self.error];
     }
     
     return [desc copy];
@@ -130,111 +131,115 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     NSAssert(self.service, @"service should not be nil");
     NSAssert(self.methodName, @"you must implements methodName in your class :%@",NSStringFromClass([self class]));
     
-    __weak typeof(self) wSelf = self;
-    dispatch_async(self.service.sessionManager.completionQueue, ^{
-        
-        __strong typeof(wSelf) self = wSelf;
-        
-        /** 2. 判断当前网络是否可用, 网络不可用直接返回 */
-        if (!self.isReachable) {
-            [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
-            return;
-        }
-        
+    /** 2. 判断当前网络是否可用, 网络不可用直接返回 */
+    if (!self.isReachable) {
+        [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
+        return;
+    }
+    
 #if kXMNAFReachablityAvailable
-        /** 3. 判断当前请求是否允许 */
-        if (!self.isAllowsCellularAccess && ![XMNAFReachabilityManager isWifiEnable]) {
-            [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
-            return;
-        }
+    /** 3. 判断当前请求是否允许 */
+    if (!self.isAllowsCellularAccess && ![XMNAFReachabilityManager isWifiEnable]) {
+        [self requestDidCompletedWithError:kXMNAFNetworkError(NSURLErrorNotConnectedToInternet, @"当前网络不可用,请检查您的网络设置")];
+        return;
+    }
 #endif
-        
-        if (completionHandler) { self.completionBlock = completionHandler; }
-        if (self.isExecuting) { [self cancelRequest]; }
-        
-        NSMutableDictionary *requestParams = [NSMutableDictionary dictionaryWithDictionary:self.service.commonParams];
-        [requestParams addEntriesFromDictionary:params ? : @{}];
-        
-        if ([self.paramSource respondsToSelector:@selector(paramsForRequest:)]) {
-            [requestParams addEntriesFromDictionary:[self.paramSource paramsForRequest:self]];
-        }
-        
-        self.requestParams = [requestParams copy];
-        
-        if ([self.interceptor respondsToSelector:@selector(request:shouldContinueWithParams:)]) {
-            BOOL shouldContinue = [self.interceptor request:self shouldContinueWithParams:requestParams];
-            if (!shouldContinue) { return; }
-        }
-        
+
+    if (completionHandler) { self.completionBlock = completionHandler; }
+    if (self.isExecuting) { [self cancelRequest]; }
+    
+    /** 清除上次请求可能保留下来的相关数据 */
+    [self clearResponseInfo];
+    
+    NSMutableDictionary *requestParams = [NSMutableDictionary dictionaryWithDictionary:self.service.commonParams];
+    [requestParams addEntriesFromDictionary:params ? : @{}];
+    
+    if ([self.paramSource respondsToSelector:@selector(paramsForRequest:)]) {
+        [requestParams addEntriesFromDictionary:[self.paramSource paramsForRequest:self]];
+    }
+    
+    if ([self.interceptor respondsToSelector:@selector(request:shouldContinueWithParams:)]) {
+        BOOL shouldContinue = [self.interceptor request:self shouldContinueWithParams:requestParams];
+        if (!shouldContinue) { return; }
+    }
+    
+    self.requestParams = [requestParams copy];
+    
 #if kXMNAFCacheAvailable
-        self.cacheKey = [self.service cacheKeyWithRequest:self];
-        
-        if (self.cachePolicy == XMNAFNetworkCachePolicyInnoringCacheData) {
-            [self.service startRequest:self];
-        } else {
-            __weak typeof(self) wSelf = self;
-            [self loadResponseObjectFromCacheWithCompletionHandler:^(XMNAFCacheMeta *meta, NSError *error) {
-                __strong typeof(wSelf) self = wSelf;
-                switch (self.cachePolicy) {
-                    case XMNAFNetworkCachePolicyReturnCacheDataDontLoad:
-                        [self requestDidCompletedWithCachedMeta:meta error:error];
-                        break;
-                    case XMNAFNetworkCachePolicyReturnCacheDataElseLoad:
-                    case XMNAFNetworkCachePolicyReturnAndRefreshCacheData:
-                    {
-                        BOOL shouldContinue = YES;
-                        if (meta && !error) {
-                            shouldContinue = self.cachePolicy != XMNAFNetworkCachePolicyReturnCacheDataElseLoad;
-                            [self requestDidCompletedWithCachedMeta:meta error:nil];
-                        }
-                        if (shouldContinue) [self.service startRequest:self];
-                    }
-                        break;
-                    default:
-                        [self.service startRequest:self];
-                        break;
-                }
-            }];
-        }
-#else
+    self.cacheKey = [self.service cacheKeyWithRequest:self];
+    
+    if (self.cachePolicy == XMNAFNetworkCachePolicyIgnoringCacheData) {
         [self.service startRequest:self];
+    } else {
+        __weak typeof(self) wSelf = self;
+        [self loadResponseObjectFromCacheWithCompletionHandler:^(XMNAFCacheMeta *meta, NSError *error) {
+            __strong typeof(wSelf) self = wSelf;
+            switch (self.cachePolicy) {
+                case XMNAFNetworkCachePolicyReturnCacheDataDontLoad:
+                    [self requestDidCompletedWithCachedMeta:meta error:error];
+                    break;
+                case XMNAFNetworkCachePolicyReturnCacheDataElseLoad:
+                case XMNAFNetworkCachePolicyReturnAndRefresh:
+                case XMNAFNetworkCachePolicyReturnAndRefreshWhileSoonExpire:
+                {
+                    BOOL shouldContinue = YES;
+                    if (meta && !error) {
+                        shouldContinue = [self shouldRefreshCacheMeta:meta];
+                        [self requestDidCompletedWithCachedMeta:meta error:nil];
+                    }
+                    if (shouldContinue) [self.service startRequest:self];
+                }
+                    break;
+                default:
+                    [self.service startRequest:self];
+                    break;
+            }
+        }];
+    }
+#else
+    [self.service startRequest:self];
 #endif
-    });
 }
 
 - (void)cancelRequest {
     
-    dispatch_async(self.service.sessionManager.completionQueue, ^{
-        [self.datatask cancel];
+    [self.datatask cancel];
 #if kXMNAFCacheAvailable
-        if (self.downloadPath.length) { [self.service.cache.diskCache removeObjectForKey:self.cacheKey]; }
+    if (self.downloadPath.length) { [self.service.cache.diskCache removeObjectForKey:self.cacheKey]; }
 #endif
-    });
 }
 
 - (void)suspendRequest {
     
-    dispatch_async(self.service.sessionManager.completionQueue, ^{
-        if ([self.datatask isKindOfClass:[NSURLSessionDownloadTask class]]) {
+    if ([self.datatask isKindOfClass:[NSURLSessionDownloadTask class]]) {
 #if kXMNAFCacheAvailable
-            __weak typeof(self) wSelf = self;
-            [(NSURLSessionDownloadTask *)self.datatask cancelByProducingResumeData:^(NSData * _Nullable resumeData) {
+        __weak typeof(self) wSelf = self;
+        [(NSURLSessionDownloadTask *)self.datatask cancelByProducingResumeData:^(NSData * _Nullable resumeData) {
+            __strong typeof(wSelf) self = wSelf;
+            dispatch_async(self.service.sessionManager.completionQueue, ^{
                 __strong typeof(wSelf) self = wSelf;
-                dispatch_async(self.service.sessionManager.completionQueue, ^{
-                    __strong typeof(wSelf) self = wSelf;
-                    if (resumeData != nil) {
-                        [self.service.cache.diskCache setObject:resumeData forKey:self.cacheKey];
-                    }
-                });
-            }];
+                if (resumeData != nil) {
+                    [self.service.cache.diskCache setObject:resumeData forKey:self.cacheKey];
+                }
+            });
+        }];
 #endif
-        } else {
-            [self.datatask cancel];
-        }
-    });
+    } else {
+        [self.datatask cancel];
+    }
 }
 
 #pragma mark - Private
+
+
+- (void)clearResponseInfo {
+
+    self.error = nil;
+    self.datatask = nil;
+    self.fromCache = NO;
+    self.requestParams = nil;
+    self.responseData = self.responseObject = self.responseJSONObject = self.responseString = nil;
+}
 
 - (void)requestDidCompletedWithError:(NSError *)error {
     
@@ -253,11 +258,13 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
         }
         
         if (shouldCache) {
+            XMNAFCacheMeta *oldCacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
             XMNAFCacheMeta *meta = [XMNAFCacheMeta cacheMetaWithRequest:self];
             [self.service.cache setObject:meta forKey:self.cacheKey];
+            /** 两者缓存相同, 不在执行相同的回调 */
+            if ([meta isEqualToMeta:oldCacheMeta]) return;
         }
     }
-    
 #endif
     
     if (self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(responseObjectForRequest:error:)]) {
@@ -279,9 +286,11 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 - (void)requestDidCompletedWithCachedMeta:(XMNAFCacheMeta *)meta error:(NSError *)error {
     
     self.error = error;
-    self.responseObject = [NSJSONSerialization JSONObjectWithData:meta.cachedData options:NSJSONReadingMutableContainers error:nil];
-    if (self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(responseObjectForRequest:error:)]) {
-        self.responseObject = [self.responseInterceptor responseObjectForRequest:self error:self.error];
+    if (!error && meta.isCahceDataValid) {
+        self.responseObject = [NSJSONSerialization JSONObjectWithData:meta.cachedData options:NSJSONReadingMutableContainers error:nil];
+        if (self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(responseObjectForRequest:error:)]) {
+            self.responseObject = [self.responseInterceptor responseObjectForRequest:self error:self.error];
+        }
     }
     self.fromCache = YES;
     [self requestCallBackOnMainThread];
@@ -290,12 +299,20 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 #endif
 
 - (void)requestCallBackOnMainThread {
-    dispatch_async(dispatch_get_main_queue(), ^{
+    
+    if ([NSThread isMainThread]) {
         self.completionBlock ? self.completionBlock(self, self.error) : nil;
         if ([self.delegate respondsToSelector:@selector(requestDidCompleted:)]) {
             [self.delegate requestDidCompleted:self];
         }
-    });
+    } else {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.completionBlock ? self.completionBlock(self, self.error) : nil;
+            if ([self.delegate respondsToSelector:@selector(requestDidCompleted:)]) {
+                [self.delegate requestDidCompleted:self];
+            }
+        });
+    }
 }
 
 #pragma mark - Setter

@@ -64,12 +64,12 @@ static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
     NSDictionary *params = nil;
     NSString *URLString = [self absoluteURLStringWithRequest:request params:&params];
     
-    __kindof AFHTTPRequestSerializer *serializer = self.sessionManager.requestSerializer;
-    serializer.allowsCellularAccess = request.allowsCellularAccess;
-    serializer.timeoutInterval = request.timeoutInterval;
+    self.sessionManager.requestSerializer.allowsCellularAccess = request.allowsCellularAccess;
+    self.sessionManager.requestSerializer.timeoutInterval = request.timeoutInterval;
     if (request.authorizationHeaderFields.count == 2) {
-        [serializer setAuthorizationHeaderFieldWithUsername:[request.authorizationHeaderFields firstObject]
-                                                   password:[request.authorizationHeaderFields lastObject]];
+        NSString *username = [request.authorizationHeaderFields firstObject];
+        NSString *password = [request.authorizationHeaderFields lastObject];
+        [self.sessionManager.requestSerializer setAuthorizationHeaderFieldWithUsername:username password:password];
     }
     
     NSError *error;
@@ -192,29 +192,30 @@ static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
                                   error:(nullable NSError *)error {
     
     __weak typeof(self) wSelf = self;
+    __block XMNAFNetworkRequest *request = nil;
     [self performThreadSafeHandler:^{
         __strong typeof(wSelf) self = wSelf;
-        XMNAFNetworkRequest *request = [self.requestMappers objectForKey:@(datatask.taskIdentifier)];
+        request = [self.requestMappers objectForKey:@(datatask.taskIdentifier)];
         if (request == nil) return; // 此处选择忽略所有不存在请求
-        
-        if ([responseObject isKindOfClass:[NSData class]]) {
-            request.responseObject = request.responseData = responseObject;
-            request.responseString = [[NSString alloc] initWithData:responseObject encoding:kXMNAFNetworkEncodingFromRequest(request)];
-        } else if ([NSJSONSerialization isValidJSONObject:responseObject]) {
-            request.responseObject = request.responseJSONObject = responseObject;
-            request.responseData = [NSJSONSerialization dataWithJSONObject:responseObject options:NSJSONWritingPrettyPrinted error:nil];
-            request.responseString = [[NSString alloc] initWithData:request.responseData encoding:kXMNAFNetworkEncodingFromRequest(request)];
-        } else if ([responseObject isKindOfClass:[NSURL class]]) {
-            // 处理
-            request.responseObject = responseObject;
-            request.responseString = [(NSURL *)responseObject absoluteString];
-        } else {
-            request.responseObject = responseObject;
-        }
-        
-        [request requestDidCompletedWithError:error];
         [self.requestMappers removeObjectForKey:@(datatask.taskIdentifier)];
     }];
+    
+    if ([responseObject isKindOfClass:[NSData class]]) {
+        request.responseObject = request.responseData = responseObject;
+        request.responseString = [[NSString alloc] initWithData:responseObject encoding:kXMNAFNetworkEncodingFromRequest(request)];
+    } else if ([NSJSONSerialization isValidJSONObject:responseObject]) {
+        request.responseObject = request.responseJSONObject = responseObject;
+        request.responseData = [NSJSONSerialization dataWithJSONObject:responseObject options:NSJSONWritingPrettyPrinted error:nil];
+        request.responseString = [[NSString alloc] initWithData:request.responseData encoding:kXMNAFNetworkEncodingFromRequest(request)];
+    } else if ([responseObject isKindOfClass:[NSURL class]]) {
+        // 处理
+        request.responseObject = responseObject;
+        request.responseString = [(NSURL *)responseObject absoluteString];
+    } else {
+        request.responseObject = responseObject;
+    }
+    
+    [request requestDidCompletedWithError:error];
 }
 
 - (NSString *)cacheKeyWithRequest:(__kindof XMNAFNetworkRequest *)request {
@@ -222,20 +223,21 @@ static inline NSURL * XMNAFNetworkCreateDownloadPath(NSString * downloadPath) {
     NSMutableString *ret = [NSMutableString stringWithString:[self absoluteURLStringWithRequest:request params:nil]];
     if (ret.length && [NSURL URLWithString:ret]) {
         
-        NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:[NSURL URLWithString:ret]];
-        NSMutableArray<NSString *> *cookieMD5s = [NSMutableArray arrayWithCapacity:cookies.count];
-        for (NSHTTPCookie *cookie in cookies) {
-            NSData *cookieData = [NSJSONSerialization dataWithJSONObject:[cookie properties] options:NSJSONWritingPrettyPrinted error:nil];
-            NSString *cookieMD5 = XMNAF_MD5([[NSString alloc] initWithData:cookieData encoding:NSUTF8StringEncoding]);
-            if (cookieMD5.length) [cookieMD5s addObject:cookieMD5];
-        }
-        [cookieMD5s sortUsingSelector:@selector(compare:)];
-        NSString *cookieMD5 = [cookieMD5s componentsJoinedByString:@","];
-        if (cookieMD5 && cookieMD5.length) {
-            [ret appendFormat:@"Cookie :%@\n",cookies];
-        }
+//        NSArray<NSHTTPCookie *> *cookies = [[NSHTTPCookieStorage sharedHTTPCookieStorage] cookiesForURL:[NSURL URLWithString:ret]];
+//        NSMutableArray<NSString *> *cookieMD5s = [NSMutableArray arrayWithCapacity:cookies.count];
+//        for (NSHTTPCookie *cookie in cookies) {
+//            NSData *cookieData = [NSJSONSerialization dataWithJSONObject:[cookie properties] options:NSJSONWritingPrettyPrinted error:nil];
+//            NSString *cookieMD5 = XMNAF_MD5([[NSString alloc] initWithData:cookieData encoding:NSUTF8StringEncoding]);
+//            if (cookieMD5.length) [cookieMD5s addObject:cookieMD5];
+//        }
+//        [cookieMD5s sortUsingSelector:@selector(compare:)];
+//        NSString *cookieMD5 = [cookieMD5s componentsJoinedByString:@","];
+//        if (cookieMD5 && cookieMD5.length) {
+//            [ret appendFormat:@"Cookie :%@\n",cookies];
+//        }
     }
-    [ret appendFormat:@"Method :%lu\n",(unsigned long)request.methodName];
+    [ret appendFormat:@"Method :%lu\n",(unsigned long)request.requestMode];
+    [ret appendFormat:@"Path :%@\n",request.methodName];
     [ret appendFormat:@"Params :%@\n",request.requestParams ? : @{}];
     return XMNAF_MD5(ret);
 }

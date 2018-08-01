@@ -45,13 +45,13 @@ NS_ASSUME_NONNULL_BEGIN
 @interface XMNAFService : NSObject
 
 /** service mode */
-@property (nonatomic, assign) XMNAFServiceMode serviceMode;
+@property (assign, nonatomic) XMNAFServiceMode serviceMode;
+/** api 配置请求参数类型 默认 XMNAFRequestSerializerJSON */
 @property (assign, nonatomic) XMNAFRequestSerializerType requestSerializerType;
+/** api 配置响应数据类型 默认 XMNAFResponseSerializerJSON */
 @property (assign, nonatomic) XMNAFResponseSerializerType responseSerializerType;
 /** api HTTPS 请求证书策略配置 */
 @property (strong, nonatomic, nullable) AFSecurityPolicy *securityPolicy;
-
-/// ========================================
 
 /** api基本请求路径 */
 @property (nonatomic, copy, readonly, nullable)   NSString *apiBaseURL;
@@ -64,8 +64,7 @@ NS_ASSUME_NONNULL_BEGIN
 /** api请求的缓存地址 默认 @"~/documents/com.xmfraker.xmafnetwork/caches/{self.apiBaseURL.host}" */
 @property (copy, nonatomic, readonly)   NSString *cachePath;
 /** 请求处理的相关队列 默认自定义串行队列 */
-@property (assign, nonatomic, readonly) dispatch_queue_t serviceQueue;
-
+@property (assign, nonatomic, readonly) dispatch_queue_t completionQueue;
 /** 初始化方法 */
 - (instancetype)initWithConfiguration:(nullable NSURLSessionConfiguration *)configuration NS_DESIGNATED_INITIALIZER;
 /** 执行一个线程安全的handler回调 */

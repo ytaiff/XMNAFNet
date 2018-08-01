@@ -43,10 +43,14 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 }
 
 @implementation XMNAFService
+{
+    pthread_mutex_t _lock;
+}
 #if kXMNAFCacheAvailable
 @synthesize cache = _cache;
 @synthesize cachePath = _cachePath;
 #endif
+@synthesize serviceMode = _serviceMode;
 @synthesize requestMappers = _requestMappers;
 @synthesize sessionManager = _sessionManager;
 
@@ -54,7 +58,6 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
     
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-
         pthread_mutex_init(&kXMNAFMutexLock, NULL);
         kXMNAFSeriviceDictionaryM = [NSMutableDictionary dictionary];
     });
@@ -70,10 +73,10 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
     
     if (self = [super init]) {
         
+        pthread_mutex_init(&_lock, NULL);
         _requestMappers = [NSMutableDictionary dictionary];
         _sessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:nil
                                                    sessionConfiguration:configuration ? : [NSURLSessionConfiguration defaultSessionConfiguration]];
-        _sessionManager.completionQueue = self.serviceQueue;
         _sessionManager.session.configuration.HTTPMaximumConnectionsPerHost = 4;
 
         _sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
@@ -84,6 +87,7 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 #if kXMNAFCacheAvailable
         _cache = [YYCache cacheWithPath:self.cachePath];
 #endif
+        _sessionManager.completionQueue = self.completionQueue;
     }
     return self;
 }
@@ -92,40 +96,42 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 
 - (void)performThreadSafeHandler:(dispatch_block_t)handler {
     
-    pthread_mutex_lock(&kXMNAFMutexLock);
+    pthread_mutex_lock(&_lock);
     if (handler) { handler(); }
-    pthread_mutex_unlock(&kXMNAFMutexLock);
+    pthread_mutex_unlock(&_lock);
 }
 
 #pragma mark - Setter
 
 - (void)setRequestSerializerType:(XMNAFRequestSerializerType)type {
+
     if (type == XMNAFRequestSerializerJSON) {
-        self.sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
+        _sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
     } else {
-        self.sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
+        _sessionManager.requestSerializer = [AFHTTPRequestSerializer serializer];
     }
-    self.sessionManager.requestSerializer.timeoutInterval = 10.f;
-    self.sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
-    self.sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
+    _sessionManager.requestSerializer.timeoutInterval = 10.f;
+    _sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
+    _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
 }
 
 - (void)setResponseSerializerType:(XMNAFResponseSerializerType)type {
+
     switch (type) {
         case XMNAFResponseSerializerJSON:
-            self.sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
+            _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
             break;
         case XMNAFResponseSerializerXML:
-            self.sessionManager.responseSerializer = [AFXMLParserResponseSerializer serializer];
+            _sessionManager.responseSerializer = [AFXMLParserResponseSerializer serializer];
             break;
         default:
-            self.sessionManager.responseSerializer = [AFHTTPResponseSerializer serializer];
+            _sessionManager.responseSerializer = [AFHTTPResponseSerializer serializer];
             break;
     }
 }
 
 - (void)setSecurityPolicy:(AFSecurityPolicy *)securityPolicy {
-    self.sessionManager.securityPolicy = securityPolicy;
+    _sessionManager.securityPolicy = securityPolicy;
 }
 
 #pragma mark - Getters
@@ -141,43 +147,50 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
 #if kXMNAFCacheAvailable
 
 - (NSString *)cachePath {
-    if (_cachePath.length) { return _cachePath; }
+    
+    NSString *cachePath = _cachePath;
+    if (cachePath.length) return cachePath;
+    
     NSString *documentPath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject];
     if (self.apiBaseURL.length) {
         NSURL *url = [NSURL URLWithString:self.apiBaseURL];
-        _cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/%@", documentPath, url.host.length ? url.host : @"default"];
+        cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/%@", documentPath, url.host.length ? url.host : @"default"];
     } else {
-        _cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/default", documentPath];
+        cachePath = [NSString stringWithFormat:@"%@/com.xmfraker.xmafnetwork/caches/default", documentPath];
     }
-    return _cachePath;
+    _cachePath = cachePath;
+    return cachePath;
 }
 
 #endif
 
 - (dispatch_queue_t)serviceQueue {
-    return dispatch_queue_create("com.xmfraker.network.complete.queue", DISPATCH_QUEUE_CONCURRENT);
+    return dispatch_queue_create("com.xmfraker.network.complete.queue", DISPATCH_QUEUE_SERIAL);
 }
 
 - (XMNAFRequestSerializerType)requestSerializerType {
 
-    id<AFURLRequestSerialization> serialization = self.sessionManager.requestSerializer;
-    if ([serialization isKindOfClass:[AFJSONResponseSerializer class]]) { return XMNAFRequestSerializerJSON; }
-    return XMNAFRequestSerializerHTTP;
+    XMNAFRequestSerializerType serializerType = XMNAFRequestSerializerHTTP;
+    id<AFURLRequestSerialization> serialization = _sessionManager.requestSerializer;
+    if ([serialization isKindOfClass:[AFJSONResponseSerializer class]]) {
+        serializerType = XMNAFRequestSerializerJSON;
+    }
+    return serializerType;
 }
 
 - (XMNAFResponseSerializerType)responseSerializerType {
     
-    id<AFURLResponseSerialization> serialization = self.sessionManager.responseSerializer;
+    XMNAFResponseSerializerType serializerType = XMNAFResponseSerializerHTTP;
+    id<AFURLResponseSerialization> serialization = _sessionManager.responseSerializer;
     if ([serialization isKindOfClass:[AFJSONResponseSerializer class]]) {
-        return XMNAFResponseSerializerJSON;
+        serializerType = XMNAFResponseSerializerJSON;
     } else if ([serialization isKindOfClass:[AFXMLParserResponseSerializer class]]) {
-        return XMNAFResponseSerializerXML;
-    } else {
-        return XMNAFResponseSerializerHTTP;
+        serializerType = XMNAFResponseSerializerXML;
     }
+    return serializerType;
 }
 
-- (AFSecurityPolicy *)securityPolicy { return self.sessionManager.securityPolicy; }
+- (AFSecurityPolicy *)securityPolicy { return _sessionManager.securityPolicy; }
 
 @end
 

@@ -43,6 +43,7 @@
                                                           options:NSJSONWritingPrettyPrinted
                                                             error:nil];
         }
+
         _expiredDate = [NSDate dateWithTimeIntervalSinceNow:request.cacheTime];
     }
     return self;
@@ -56,6 +57,14 @@
 
 - (instancetype)initWithCoder:(NSCoder *)aDecoder {
     return [self yy_modelInitWithCoder:aDecoder];
+}
+
+#pragma mark - Public
+
+- (BOOL)isEqualToMeta:(XMNAFCacheMeta *)meta {
+    if (self.isExpired || !self.isCahceDataValid) return NO;
+    if (meta.isExpired || !meta.isCahceDataValid) return NO;
+    return [self.cachedData isEqual:meta.cachedData] && [self.cachedVersion isEqualToString:meta.cachedVersion];
 }
 
 #pragma mark - Getter

@@ -34,6 +34,10 @@ NS_ASSUME_NONNULL_BEGIN
  */
 - (instancetype)initWithRequest:(__kindof XMNAFNetworkRequest *)request;
 + (instancetype)cacheMetaWithRequest:(__kindof XMNAFNetworkRequest *)request;
+/** 比较两个cacheMeta是否相同
+ *  比较两者的cachedData and cachedVersion
+ **/
+- (BOOL)isEqualToMeta:(XMNAFCacheMeta *)meta;
 
 @end
 

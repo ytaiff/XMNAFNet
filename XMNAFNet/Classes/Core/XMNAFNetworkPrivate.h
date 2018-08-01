@@ -49,10 +49,12 @@ NS_ASSUME_NONNULL_BEGIN
 /** api 请求的相关参数 */
 @property (copy, nonatomic, nullable)  NSDictionary *requestParams;
 /** api 请求对应的datatask */
-@property (strong, nonatomic, nonnull) NSURLSessionDataTask *datatask;
+@property (strong, nonatomic, nullable) NSURLSessionDataTask *datatask;
 /** api 请求的管理类 */
-@property (strong, nonatomic, nonnull) XMNAFService *service;
+@property (strong, nonatomic, nonnull, readonly) XMNAFService *service;
 
+/** 清除上次请求可能保留下来的相关数据 */
+- (void)clearResponseInfo;
 - (void)requestDidCompletedWithError:(nullable NSError *)error;
 @end
 

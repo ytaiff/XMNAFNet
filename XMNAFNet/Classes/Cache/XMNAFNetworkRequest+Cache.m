@@ -26,23 +26,53 @@
 
 - (void)loadResponseObjectFromCacheWithCompletionHandler:(void(^)(XMNAFCacheMeta *meta, NSError * error))handler {
     
-    if (!self.cacheKey.length) self.cacheKey = [self.service cacheKeyWithRequest:self];
-    if ([self.service.cache containsObjectForKey:self.cacheKey]) {
-        XMNAFCacheMeta *cacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
-        if (!cacheMeta.isCahceDataValid) {
-            [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorInvaildCacheData, @"缓存数据无效"));
-        } else if(![cacheMeta.cachedVersion isEqualToString:self.cacheVersion]) {
-            [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorVersionMismatch, @"缓存数据版本不匹配"));
-        } else if(cacheMeta.isExpired) {
-            [self.service.cache removeObjectForKey:self.cacheKey];
-            handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorExpired, @"缓存数据已经过期"));
+    XMNAFCacheMetaHandler mainHandler = ^(XMNAFCacheMeta *__nullable meta, NSError *__nullable error) {
+        if ([NSThread isMainThread]) {
+            if (handler) { handler(meta, error); }
         } else {
-            handler(cacheMeta, nil);
+            dispatch_async(dispatch_get_main_queue(), ^{
+                if (handler) { handler(meta, error); }
+            });
         }
+    };
+
+    if (!self.cacheKey.length) self.cacheKey = [self.service cacheKeyWithRequest:self];
+    NSString *cacheKey = self.cacheKey;
+    if ([self.service.cache containsObjectForKey:cacheKey]) {
+        
+        __weak typeof(self) wSelf = self;
+        [self.service.cache objectForKey:cacheKey withBlock:^(NSString * _Nonnull key, XMNAFCacheMeta *cacheMeta) {
+            __strong typeof(wSelf) self = wSelf;
+            if (!cacheMeta.isCahceDataValid) {
+                [self.service.cache removeObjectForKey:cacheKey];
+                mainHandler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorInvaildCacheData, @"缓存数据无效"));
+            } else if(![cacheMeta.cachedVersion isEqualToString:self.cacheVersion]) {
+                [self.service.cache removeObjectForKey:cacheKey];
+                mainHandler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorVersionMismatch, @"缓存数据版本不匹配"));
+            } else if(cacheMeta.isExpired) {
+                [self.service.cache removeObjectForKey:cacheKey];
+                mainHandler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorExpired, @"缓存数据已经过期"));
+            } else {
+                mainHandler(cacheMeta, nil);
+            }
+        }];
     } else {
-        handler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorUnexists, @"缓存数据不存在"));
+        mainHandler(nil, kXMNAFNetworkError(XMNAFNetworkCacheErrorUnexists, @"缓存数据不存在"));
+    }
+}
+
+- (BOOL)shouldRefreshCacheMeta:(XMNAFCacheMeta *)meta {
+//    if (!self.shouldCache) return NO;
+//    if (meta.isExpired || !meta.isCahceDataValid) return YES;
+    XMNAFNetworkCachePolicy cachePolicy = self.cachePolicy;
+    switch (cachePolicy) {
+        case XMNAFNetworkCachePolicyReturnAndRefresh: // fall though
+        case XMNAFNetworkCachePolicyIgnoringCacheDataRefresh: return YES;
+        case XMNAFNetworkCachePolicyReturnAndRefreshWhileSoonExpire: {
+            NSTimeInterval timeDiff = [meta.expiredDate timeIntervalSinceDate:[NSDate date]];
+            return timeDiff < self.soonExpireTime;
+        } break;
+        default: return NO;
     }
 }
 
@@ -50,6 +80,10 @@
 
 - (void)setCacheTime:(NSTimeInterval)cacheTime {
     objc_setAssociatedObject(self, @selector(cacheTime), @(cacheTime), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+
+- (void)setSoonExpireTime:(NSTimeInterval)soonExpireTime {
+    objc_setAssociatedObject(self, @selector(soonExpireTime), @(soonExpireTime), OBJC_ASSOCIATION_RETAIN_NONATOMIC);
 }
 
 - (void)setCacheVersion:(NSString *)cacheVersion {
@@ -72,10 +106,16 @@
     return 0.f;
 }
 
+- (NSTimeInterval)soonExpireTime {
+    id obj = objc_getAssociatedObject(self, _cmd);
+    if (obj && [obj respondsToSelector:@selector(doubleValue)]) { return [obj doubleValue]; }
+    return 60.f * 5;
+}
+
 - (XMNAFNetworkCachePolicy)cachePolicy {
     id obj = objc_getAssociatedObject(self, _cmd);
     if (obj && [obj respondsToSelector:@selector(intValue)]) { return [obj intValue]; }
-    return XMNAFNetworkCachePolicyInnoringCacheData;
+    return XMNAFNetworkCachePolicyIgnoringCacheData;
 }
 
 - (NSString *)cacheVersion {
@@ -87,7 +127,7 @@
 - (NSString *)cacheKey { return objc_getAssociatedObject(self, _cmd); }
 
 - (BOOL)shouldCache {
-    return self.cachePolicy != XMNAFNetworkCachePolicyInnoringCacheData && self.cacheTime > 0;
+    return self.cachePolicy != XMNAFNetworkCachePolicyIgnoringCacheData && self.cacheTime > 0;
 }
 
 #pragma mark - Class
