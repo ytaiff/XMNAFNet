@@ -96,9 +96,7 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
 - (_Nullable id)fetchDataWithReformer:(_Nullable id<XMNAFNetworkRequestDataReformer>)reformer
                                 error:(NSError * __nullable)error {
     
-    if (reformer) {
-        return [reformer request:self reformerOriginData:self.responseObject error:error];
-    }
+    if (reformer) { return [reformer request:self reformerOriginData:self.responseObject error:error]; }
     return self.responseObject;
 }
 
@@ -249,10 +247,6 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     if (self.error == nil) {
         BOOL shouldCache = self.shouldCache;
         
-        if (shouldCache && self.interceptor && [self.interceptor respondsToSelector:@selector(requestShouldCache:)]) {
-            shouldCache = shouldCache && [self.interceptor requestShouldCache:self];
-        }
-        
         if (shouldCache && self.responseInterceptor && [self.responseInterceptor respondsToSelector:@selector(requestShouldCacheResponse:)]) {
             shouldCache = shouldCache && [self.responseInterceptor requestShouldCacheResponse:self];
         }
@@ -261,8 +255,10 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
             XMNAFCacheMeta *oldCacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
             XMNAFCacheMeta *meta = [XMNAFCacheMeta cacheMetaWithRequest:self];
             [self.service.cache setObject:meta forKey:self.cacheKey];
-            /** 两者缓存相同, 不在执行相同的回调 */
-            if ([meta isEqualToMeta:oldCacheMeta]) return;
+            /** 两者缓存相同并且不是专门刷新操作, 不在执行相同的回调 */
+            if ([meta isEqualToMeta:oldCacheMeta] && self.cachePolicy != XMNAFNetworkCachePolicyIgnoringCacheDataRefresh) {
+                return;
+            }
         }
     }
 #endif

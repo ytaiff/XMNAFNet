@@ -29,8 +29,9 @@ typedef NS_ENUM (NSUInteger, XMNAFNetworkRequestMode) {
 @class XMNAFNetworkRequest;
 @protocol XMNAFNetworkRequestDelegate <NSObject>
 
-@required
-- (void)requestDidCompleted:(XMNAFNetworkRequest * _Nonnull)request;
+@optional
+/** 请求确定完成后的回调 */
+- (void)requestDidCompleted:(XMNAFNetworkRequest * __nonnull )request;
 
 @end
 
@@ -48,15 +49,6 @@ typedef NS_ENUM (NSUInteger, XMNAFNetworkRequestMode) {
  *  @return 是否可以进行请求
  */
 - (BOOL)request:(XMNAFNetworkRequest * _Nonnull)request shouldContinueWithParams:(id _Nullable)params;
-
-/**
- *  判断请求是否需要被缓存
- *  请求完成之后 回调
- *  @param request 请求的示例
- *
- *  @return 是否被缓存
- */
-- (BOOL)requestShouldCache:(XMNAFNetworkRequest * _Nonnull)request;
 
 @end
 

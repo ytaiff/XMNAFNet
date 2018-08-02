@@ -127,7 +127,18 @@
 - (NSString *)cacheKey { return objc_getAssociatedObject(self, _cmd); }
 
 - (BOOL)shouldCache {
-    return self.cachePolicy != XMNAFNetworkCachePolicyIgnoringCacheData && self.cacheTime > 0;
+    
+    switch (self.cachePolicy) {
+        case XMNAFNetworkCachePolicyReturnAndRefresh:
+        case XMNAFNetworkCachePolicyReturnCacheDataDontLoad:
+        case XMNAFNetworkCachePolicyReturnCacheDataElseLoad:
+        case XMNAFNetworkCachePolicyIgnoringCacheDataRefresh:
+        case XMNAFNetworkCachePolicyReturnAndRefreshWhileSoonExpire:
+            return (self.cacheTime > 0);
+            break;
+        case XMNAFNetworkCachePolicyIgnoringCacheData:
+        default: return NO;
+    }
 }
 
 #pragma mark - Class

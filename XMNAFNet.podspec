@@ -33,6 +33,6 @@ Pod::Spec.new do |s|
     ss.dependency 'XMNAFNet/Core'
     ss.dependency 'YYCache'
     ss.dependency 'YYModel'
-#    ss.compiler_flags = '-Wno-format', '-Wno-everything'
+    ss.compiler_flags = '-Wno-format', '-Wno-everything'
   end
 end
