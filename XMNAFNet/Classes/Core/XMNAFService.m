@@ -75,8 +75,7 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
         
         pthread_mutex_init(&_lock, NULL);
         _requestMappers = [NSMutableDictionary dictionary];
-        _sessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:nil
-                                                   sessionConfiguration:configuration ? : [NSURLSessionConfiguration defaultSessionConfiguration]];
+        _sessionManager = [[AFHTTPSessionManager alloc] initWithBaseURL:nil sessionConfiguration:configuration];
         _sessionManager.session.configuration.HTTPMaximumConnectionsPerHost = 4;
 
         _sessionManager.requestSerializer = [AFJSONRequestSerializer serializer];
@@ -84,6 +83,13 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
         _sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
         _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
         _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
+        
+        if (self.commonHeaders.count) {
+            [self.commonHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+                [_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
+            }];
+        }
+        
 #if kXMNAFCacheAvailable
         _cache = [YYCache cacheWithPath:self.cachePath];
 #endif
@@ -113,6 +119,12 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
     _sessionManager.requestSerializer.timeoutInterval = 10.f;
     _sessionManager.requestSerializer.cachePolicy = NSURLRequestUseProtocolCachePolicy;
     _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
+    
+    if (self.commonHeaders.count) {
+        [self.commonHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
+            [_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
+        }];
+    }
 }
 
 - (void)setResponseSerializerType:(XMNAFResponseSerializerType)type {
