@@ -12,12 +12,12 @@
 typedef NS_ENUM(NSUInteger, XMNAFReachablityStatus) {
     /** 未知网络状态 */
     XMNAFReachablityStatusUnknown = 0,
-    /** wifi */
-    XMNAFReachablityStatusWifi,
     /** 移动网络 */
     XMNAFReachablityStatusWWAN,
+    /** wifi */
+    XMNAFReachablityStatusWifi,
     /** 2G网络 */
-    XMNAFReachablityStatus2G,
+    XMNAFReachablityStatus2G = 100,
     /** 3G网络 */
     XMNAFReachablityStatus3G,
     /** 4G网络 */
@@ -28,8 +28,9 @@ FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusChangedNotification;
 FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusKey;
 FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusStringKey;
 
-@protocol XMNAFReachabilityDelegate <NSObject>
+typedef void(^XMNAFReachabilityStatusChangedHandler)(XMNAFReachablityStatus status);
 
+@protocol XMNAFReachabilityDelegate <NSObject>
 - (void)statusDidChanged:(XMNAFReachablityStatus)status;
 @end
 
@@ -49,77 +50,18 @@ FOUNDATION_EXPORT NSString *kXMNAFReachabilityStatusStringKey;
 
 
 @property (nonatomic, weak)   id<XMNAFReachabilityDelegate> delegate;
-@property (nonatomic, copy)   void(^statusDidChangedBlock)(XMNAFReachablityStatus status);
-
-
-+ (instancetype)sharedManager;
+@property (nonatomic, copy)   XMNAFReachabilityStatusChangedHandler statusDidChangedBlock;
 
 - (void)startMonitoring;
 - (void)startMonitoringWithURL:(NSURL *)URL;
-
-- (void)startMonitorWithURL:(NSURL *)URL
-                   delegate:(id<XMNAFReachabilityDelegate>)delegate;
-
-- (void)startMonitoringWithURL:(NSURL *)URL
-         statusDidChangedBlock:(void(^)(XMNAFReachablityStatus status))block;
+- (void)startMonitoringWithURL:(NSURL *)URL delegate:(id<XMNAFReachabilityDelegate>)delegate;
+- (void)startMonitoringWithURL:(NSURL *)URL handler:(XMNAFReachabilityStatusChangedHandler)handler;
 
 - (void)stopMonitoring;
 
+#pragma mark - Class
 
-#pragma mark - Class Methods
-
-/// ========================================
-/// @name   以下方法均为直接操作[XMNAFReachabilityManager sharedManager]
-/// ========================================
-
-/**
- *  @brief 获取当前的网络状态
- *
- *  @return 当前网络状态
- */
-+ (XMNAFReachablityStatus)currentStatus;
-
-/**
- *  @brief 获取当前网络状态对应字符串
- *
- *  @return 当前状态字符创
- */
-+ (NSString *)currentStatusString;
-
-/**
- *  @brief 开始检测网络状态
- */
-+ (void)startMonitoring;
-
-/**
- *  @brief 开始检测网络状态
- *
- *  @param URL 测试连接的网络地址
- */
-+ (void)startMonitoringWithURL:(NSURL *)URL;
-
-/**
- *  @brief 开始检测网络状态
- *
- *  @param URL   测试连接的网络地址
- *  @param block block回调
- */
-+ (void)startMonitoringWithURL:(NSURL *)URL
-         statusDidChangedBlock:(void(^)(XMNAFReachablityStatus status))block;
-
-/**
- *  @brief 开始检测网络状态
- *
- *  @param URL   测试连接的网络地址
- *  @param delegate delegate方式回调
- */
-+ (void)startMonitoringWithURL:(NSURL *)URL
-                      delegate:(id<XMNAFReachabilityDelegate>)delegate;
-
-/**
- *  @brief 停止监听网络状态
- */
-+ (void)stopMonitoring;
++ (instancetype)sharedManager;
 
 /**
  *  @brief wifi是否可用

@@ -85,8 +85,10 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
         _sessionManager.responseSerializer = [AFJSONResponseSerializer serializer];
         
         if (self.commonHeaders.count) {
+            __weak typeof(self) wSelf = self;
             [self.commonHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-                [_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
+                __strong typeof(wSelf) self = wSelf;
+                [self->_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
             }];
         }
         
@@ -121,8 +123,10 @@ NSError *__nonnull kXMNAFNetworkError(NSInteger code, NSString * __nullable mess
     _sessionManager.requestSerializer.HTTPShouldHandleCookies = YES;
     
     if (self.commonHeaders.count) {
+        __weak typeof(self) wSelf = self;
         [self.commonHeaders enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
-            [_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
+            __strong typeof(wSelf) self = wSelf;
+            [self->_sessionManager.requestSerializer setValue:obj forHTTPHeaderField:key];
         }];
     }
 }

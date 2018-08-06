@@ -38,12 +38,12 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
 
 @implementation XMNAFReachabilityManager
 
+#pragma mark - Life
+
 + (instancetype)sharedManager {
-    
     static id manager;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
-        
         manager = [[[self class] alloc] init];
     });
     return manager;
@@ -57,47 +57,33 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
 
 - (void)startMonitoring {
 
-    [self startMonitoringWithURL:nil
-                        delegate:nil
-           statusDidChangedBlock:nil];
+    [self startMonitoringWithURL:nil delegate:nil handler:nil];
 }
 
 - (void)startMonitoringWithURL:(NSURL *)URL {
 
-    [self startMonitoringWithURL:URL
-                        delegate:nil
-           statusDidChangedBlock:nil];
+    [self startMonitoringWithURL:URL delegate:nil handler:nil];
 }
 
-- (void)startMonitoringWithURL:(NSURL *)URL
-         statusDidChangedBlock:(void (^)(XMNAFReachablityStatus status))block {
+- (void)startMonitoringWithURL:(NSURL *)URL handler:(XMNAFReachabilityStatusChangedHandler)handler {
     
-    [self startMonitoringWithURL:URL
-                        delegate:nil
-           statusDidChangedBlock:block];
+    [self startMonitoringWithURL:URL delegate:nil handler:handler];
 }
 
-- (void)startMonitorWithURL:(NSURL *)URL
-                   delegate:(id<XMNAFReachabilityDelegate>)delegate {
+- (void)startMonitoringWithURL:(NSURL *)URL delegate:(id<XMNAFReachabilityDelegate>)delegate {
     
-    [self startMonitoringWithURL:URL
-                        delegate:delegate
-           statusDidChangedBlock:nil];
+    [self startMonitoringWithURL:URL delegate:delegate handler:nil];
 }
 
 - (void)startMonitoringWithURL:(NSURL *)URL
                       delegate:(id<XMNAFReachabilityDelegate>)delegate
-         statusDidChangedBlock:(void (^)(XMNAFReachablityStatus status))block {
+                       handler:(XMNAFReachabilityStatusChangedHandler)handler {
     
     
-    if (self.isMonitoring) {
-        
-        XMNLog(@"reachability is monitoring");
-        [self stopMonitoring];
-    }
+    if (self.isMonitoring) { [self stopMonitoring]; }
     
     self.delegate = delegate;
-    self.statusDidChangedBlock = block;
+    self.statusDidChangedBlock = handler;
     
     if (URL) {
         self.reachability = [Reachability reachabilityWithHostName:[URL host]];
@@ -139,7 +125,6 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
                                    kXMNAFReachabilityStatusStringKey:self.statusString};
         [[NSNotificationCenter defaultCenter] postNotificationName:kXMNAFReachabilityStatusChangedNotification object:self userInfo:userInfo];
         
-
         /** block回调 */
         self.statusDidChangedBlock ? self.statusDidChangedBlock(self.status) : nil;
         
@@ -185,7 +170,7 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
         case XMNAFReachablityStatusWWAN:
             return @"WWAN";
         default:
-            return @"nonetwork";
+            return @"unknown";
     }
 }
 
@@ -223,14 +208,16 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
 /** @brief 3G数组 */
 -(NSArray *)technology3GArray{
     
-    return @[CTRadioAccessTechnologyHSDPA,
-            CTRadioAccessTechnologyWCDMA,
-            CTRadioAccessTechnologyHSUPA,
-            CTRadioAccessTechnologyCDMA1x,
-            CTRadioAccessTechnologyCDMAEVDORev0,
-            CTRadioAccessTechnologyCDMAEVDORevA,
-            CTRadioAccessTechnologyCDMAEVDORevB,
-             CTRadioAccessTechnologyeHRPD];
+    return @[
+             CTRadioAccessTechnologyHSDPA,
+             CTRadioAccessTechnologyWCDMA,
+             CTRadioAccessTechnologyHSUPA,
+             CTRadioAccessTechnologyCDMA1x,
+             CTRadioAccessTechnologyCDMAEVDORev0,
+             CTRadioAccessTechnologyCDMAEVDORevA,
+             CTRadioAccessTechnologyCDMAEVDORevB,
+             CTRadioAccessTechnologyeHRPD
+             ];
 }
 
 /** @brief 4G数组 */
@@ -238,54 +225,11 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
 
 #pragma mark - Class Methods
 
-+ (XMNAFReachablityStatus)currentStatus {
-    
-    return [XMNAFReachabilityManager sharedManager].status;
-}
-
-+ (NSString *)currentStatusString {
-    
-    return [XMNAFReachabilityManager sharedManager].statusString;
-}
-
-+ (void)startMonitoring {
-    
-    [[XMNAFReachabilityManager sharedManager] startMonitoring];
-}
-
-+ (void)startMonitoringWithURL:(NSURL *)URL {
-    
-    [[XMNAFReachabilityManager sharedManager] startMonitoringWithURL:URL
-                                                            delegate:nil
-                                               statusDidChangedBlock:nil];
-}
-
-+ (void)startMonitoringWithURL:(NSURL *)URL
-         statusDidChangedBlock:(void(^)(XMNAFReachablityStatus status))block {
-    
-    [[XMNAFReachabilityManager sharedManager] startMonitoringWithURL:URL
-                                                            delegate:nil
-                                               statusDidChangedBlock:block];
-}
-
-+ (void)startMonitoringWithURL:(NSURL *)URL
-                      delegate:(id<XMNAFReachabilityDelegate>)delegate {
-    
-    [[XMNAFReachabilityManager sharedManager] startMonitoringWithURL:URL
-                                                            delegate:delegate
-                                               statusDidChangedBlock:nil];
-}
-
-+ (void)stopMonitoring {
-    
-    [[XMNAFReachabilityManager sharedManager] stopMonitoring];
-}
-
 /**
  *  @brief wifi是否可用
  *
  */
-+(BOOL)isWifiEnable {
++ (BOOL)isWifiEnable {
     
     return [XMNAFReachabilityManager sharedManager].isWifiEnable;
 }
@@ -295,7 +239,7 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
  *
  *  @return YES or NO
  */
-+(BOOL)isNetworkEnable {
++ (BOOL)isNetworkEnable {
     
     return [XMNAFReachabilityManager sharedManager].isNetworkEnable;
 }
@@ -305,8 +249,9 @@ NSString *kXMNAFReachabilityStatusStringKey = @"com.XMFraker.XMNAFNetwork.kXMNAF
  *
  *  @return YES or NO
  */
-+(BOOL)isHighSpeedNetwork {
++ (BOOL)isHighSpeedNetwork {
     
     return [XMNAFReachabilityManager sharedManager].isHighSpeedNetwork;
 }
+
 @end

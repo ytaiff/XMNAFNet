@@ -8,7 +8,7 @@
 
 Pod::Spec.new do |s|
   s.name             = 'XMNAFNet'
-  s.version          = '0.4.4'
+  s.version          = '0.4.5'
   s.summary          = '基于AFNetworking封装的网络请求类库'
   s.homepage         = 'https://github.com/ws00801526/XMNAFNet'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
@@ -33,6 +33,6 @@ Pod::Spec.new do |s|
     ss.dependency 'XMNAFNet/Core'
     ss.dependency 'YYCache'
     ss.dependency 'YYModel'
-    ss.compiler_flags = '-Wno-format', '-Wno-everything'
+    ss.compiler_flags = '-Wno-format', '-Wno-everything', '-Wno-documentation'
   end
 end
