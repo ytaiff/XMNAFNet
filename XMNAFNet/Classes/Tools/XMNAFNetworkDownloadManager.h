@@ -13,7 +13,6 @@ FOUNDATION_EXTERN NSString * _Nonnull const kXMNAFDownloadFileNameKey;
 
 @interface XMNAFNetworkDownloadManager : NSObject
 
-
 #pragma mark - Properties
 
 /** downloadManager 中 所有的tasks */

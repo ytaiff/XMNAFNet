@@ -68,14 +68,14 @@ NSString *const kXMNAFUploadRequestParamsKey = @"com.XMFraker.XMNAFNetwork.XMNAF
             if ([[obj lowercaseString] isEqualToString:@"cookie"]) {
                 if (cookieString && cookieString.length) {
                     [self.requestSerizalizer setValue:[obj stringByAppendingFormat:@";%@",cookieString] forHTTPHeaderField:key];
-                }else {
+                } else {
                     [self.requestSerizalizer setValue:obj forHTTPHeaderField:key];
                 }
-            }else {
+            } else {
                 [self.requestSerizalizer setValue:obj forHTTPHeaderField:key];
             }
         }];
-    }else if (cookieString && cookieString.length){
+    } else if (cookieString && cookieString.length){
         [self.requestSerizalizer setValue:cookieString forHTTPHeaderField:@"Cookie"];
     }
     

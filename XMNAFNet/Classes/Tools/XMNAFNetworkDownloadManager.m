@@ -50,7 +50,7 @@ static NSString *kXMNAFDownloadTaskProgressKey;
         
         if (cachePath) {
             self.cachePath = cachePath;
-        }else {
+        } else {
             NSArray *cachePaths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
             NSString *cachePath = [cachePaths firstObject];
             self.cachePath = [cachePath stringByAppendingPathComponent:@"com.XMFraker.XMNAFNetwork.XMAFDownloadManager"];
@@ -106,7 +106,7 @@ static NSString *kXMNAFDownloadTaskProgressKey;
             NSString *absoulateFilePath = [self handleDownCompleted:response filePath:fileDownloadingPath error:error];
             completeBlock ? completeBlock(absoulateFilePath, error) : nil;
         }];
-    }else {
+    } else {
         
         /** 有缓存记录 */
         task = [self.sessionManager downloadTaskWithResumeData:[NSData dataWithContentsOfFile:fileDownloadingPath] progress:nil destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
