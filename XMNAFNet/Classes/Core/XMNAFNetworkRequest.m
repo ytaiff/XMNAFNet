@@ -253,8 +253,6 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
         
         if (shouldCache) {
             XMNAFCacheMeta *meta = [XMNAFCacheMeta cacheMetaWithRequest:self];
-            [self.service.cache setObject:meta forKey:self.cacheKey];
-
             switch (self.cachePolicy) {
                     /** 以下策略采用如果缓存数据一致、则不会再次回调缓存结果 */
                 case XMNAFNetworkCachePolicyReturnAndRefresh:
@@ -268,6 +266,7 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
                 case XMNAFNetworkCachePolicyIgnoringCacheDataRefresh: // fall though
                 default: break;
             }
+            [self.service.cache setObject:meta forKey:self.cacheKey];
         }
     }
 #endif
@@ -277,12 +276,7 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
     }
 
     self.fromCache = NO;
-    if (self.ignoredCancelledRequest && self.isCancelled) {
-#if DEBUG
-        NSLog(@"%@ is ignored request", self);
-#endif
-        return;
-    }
+    if (self.ignoredCancelledRequest && self.isCancelled) { return; }
     [self requestCallBackOnMainThread];
 }
 
