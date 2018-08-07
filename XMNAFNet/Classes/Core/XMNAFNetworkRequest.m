@@ -252,12 +252,21 @@ NSString *const kXMNAFNetworkErrorDomain = @"com.XMFraker.XMNAFNetwork.Domain";
         }
         
         if (shouldCache) {
-            XMNAFCacheMeta *oldCacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
             XMNAFCacheMeta *meta = [XMNAFCacheMeta cacheMetaWithRequest:self];
             [self.service.cache setObject:meta forKey:self.cacheKey];
-            /** 两者缓存相同并且不是专门刷新操作, 不在执行相同的回调 */
-            if ([meta isEqualToMeta:oldCacheMeta] && self.cachePolicy != XMNAFNetworkCachePolicyIgnoringCacheDataRefresh) {
-                return;
+
+            switch (self.cachePolicy) {
+                    /** 以下策略采用如果缓存数据一致、则不会再次回调缓存结果 */
+                case XMNAFNetworkCachePolicyReturnAndRefresh:
+                case XMNAFNetworkCachePolicyReturnAndRefreshWhileSoonExpire:
+                {
+                    XMNAFCacheMeta *oldCacheMeta = (XMNAFCacheMeta *)[self.service.cache objectForKey:self.cacheKey];
+                    if ([meta isEqualToMeta:oldCacheMeta]) { return; }
+                }
+                    break;
+                    /** 以下策略需要回调缓存结果 */
+                case XMNAFNetworkCachePolicyIgnoringCacheDataRefresh: // fall though
+                default: break;
             }
         }
     }

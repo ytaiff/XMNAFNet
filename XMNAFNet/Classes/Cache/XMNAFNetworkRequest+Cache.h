@@ -45,7 +45,15 @@ typedef void(^XMNAFCacheMetaHandler)(XMNAFCacheMeta *__nullable meta, NSError *_
 @property (assign, nonatomic) NSTimeInterval soonExpireTime;
 /** 缓存策略 默认 InnoringCacheData */
 @property (assign, nonatomic) XMNAFNetworkCachePolicy cachePolicy;
-/** cacheTime > 0 && cachePolicy != ignoringCahceData 时为YES */
+
+/**
+ *  While (cacheTime > 0 && cachePolicy != ignoringCahceData) the value is YES
+ *  @warnings
+ *  if you override this function, you should change cachePolicy too
+ *
+ *  cachePoliy determind if request should started by AFNetworking
+ *  shouldCache determind if request.response should be cached
+ **/
 @property (assign, nonatomic, readonly) BOOL shouldCache;
 
 /** 判断是否需要刷新当前缓存 */
