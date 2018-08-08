@@ -24,18 +24,20 @@
 
 #pragma mark - Public
 
+static NSMutableSet *kXMNAFNetworkRequests = nil;
 - (void)loadResponseObjectFromCacheWithCompletionHandler:(void(^)(XMNAFCacheMeta *meta, NSError * error))handler {
+
+    if (!kXMNAFNetworkRequests) { kXMNAFNetworkRequests = [NSMutableSet set]; }
     
     XMNAFCacheMetaHandler mainHandler = ^(XMNAFCacheMeta *__nullable meta, NSError *__nullable error) {
-        if ([NSThread isMainThread]) {
+        dispatch_queue_t queue = self.service.sessionManager.completionQueue ? : dispatch_get_main_queue();
+        dispatch_async(queue, ^{
             if (handler) { handler(meta, error); }
-        } else {
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if (handler) { handler(meta, error); }
-            });
-        }
+            [kXMNAFNetworkRequests removeObject:self];
+        });
     };
-
+    
+    [kXMNAFNetworkRequests addObject:self];
     if (!self.cacheKey.length) self.cacheKey = [self.service cacheKeyWithRequest:self];
     NSString *cacheKey = self.cacheKey;
     if ([self.service.cache containsObjectForKey:cacheKey]) {
