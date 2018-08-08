@@ -28,23 +28,17 @@
     if (self = [super init]) {
         _cachedVersion = request.cacheVersion;
         _cachedResponseHeaders = request.responseHeaders;
-        if (request.responseObject) {
-            _cachedData = [NSJSONSerialization dataWithJSONObject:request.responseObject
-                                                          options:NSJSONWritingPrettyPrinted
-                                                            error:nil];
-        } else if (request.responseJSONObject) {
-            _cachedData = [NSJSONSerialization dataWithJSONObject:request.responseJSONObject
-                                                          options:NSJSONWritingPrettyPrinted
-                                                            error:nil];
-        } else if (request.responseData) {
-            _cachedData = request.responseData;
-        } else if (request.responseString) {
-            _cachedData = [NSJSONSerialization dataWithJSONObject:[[request responseString] dataUsingEncoding:NSUTF8StringEncoding]
-                                                          options:NSJSONWritingPrettyPrinted
-                                                            error:nil];
-        }
-
         _expiredDate = [NSDate dateWithTimeIntervalSinceNow:request.cacheTime];
+        
+        if ([NSJSONSerialization isValidJSONObject:request.responseObject]) {
+            _cachedData = [NSJSONSerialization dataWithJSONObject:request.responseObject options:NSJSONWritingPrettyPrinted error:nil];
+        } else if ([request.responseObject isKindOfClass:[NSData class]]) {
+            _cachedData = [(NSData *)request.responseObject copy];
+        } else if (request.responseData) {
+            _cachedData = [request.responseData copy];
+        } else if (request.responseString) {
+            _cachedData = [[request responseString] dataUsingEncoding:NSUTF8StringEncoding];
+        }
     }
     return self;
 }
